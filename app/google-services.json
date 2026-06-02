@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "352611767299",
+    "project_id": "worldmondial-9141b",
+    "storage_bucket": "worldmondial-9141b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:352611767299:android:891be7bdab300ff058ea36",
+        "android_client_info": {
+          "package_name": "com.worldmondial.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4jZVKXcxhs2eu3FTldDfvW4_6Wd1DS-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
