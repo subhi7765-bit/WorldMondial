@@ -1,45 +1,85 @@
-name: Build World Mondial Debug APK
+name: Build World Mondial Debug
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Verify project.txt
+        run: |
+          if [ ! -f "project.txt" ]; then
+            echo "❌ project.txt غير موجود في جذر الريبو!"
+            ls -la
+            exit 1
+          else
+            echo "✅ project.txt موجود - الحجم: $(wc -c < project.txt) بايت"
+          fi
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make Gradle Executable
-        run: chmod +x gradlew
-
-      - name: Show Full Project Structure
+      - name: Extract Files from project.txt
         run: |
-          echo "=== Root Files ==="
-          ls -la
-          echo "=== settings.gradle.kts Content ==="
-          cat settings.gradle.kts || echo "settings.gradle.kts not found"
-          echo "=== Available Projects ==="
-          ./gradlew projects --console=plain
+          python3 - << 'PYEOF'
+          import os, re, sys
+          source = "project.txt"
+          if not os.path.exists(source):
+              print("❌ project.txt not found!")
+              sys.exit(1)
+          with open(source, 'r', encoding='utf-8') as f:
+              content = f.read()
+          pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
+          count = 0
+          for match in pattern.finditer(content):
+              filepath = match.group(1).strip().lstrip('/')
+              body = match.group(2).rstrip('\n')
+              dirpath = os.path.dirname(filepath)
+              if dirpath:
+                  os.makedirs(dirpath, exist_ok=True)
+              with open(filepath, 'w', encoding='utf-8') as out:
+                  out.write(body)
+              count += 1
+          print(f"✅ تم استخراج {count} ملف بنجاح")
+          PYEOF
+
+      - name: Create google-services.json
+        run: |
+          mkdir -p app
+          cat > app/google-services.json << 'EOF'
+          {"project_info":{"project_number":"940789403342","project_id":"world-mondial"},"client":[{"client_info":{"android_client_info":{"package_name":"sa.mondial.world"}},"api_key":[{"current_key":"AIzaSyD5QcgMhaHvVkvChUqEVlArCwAO9F84RF0"}]}],"configuration_version":"1"}
+          EOF
+
+      - name: Generate Gradle Wrapper
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.10-bin.zip -P /tmp
+          unzip -q /tmp/gradle-8.10-bin.zip -d /tmp/gradle-inst
+          /tmp/gradle-inst/gradle-8.10/bin/gradle wrapper --gradle-version 8.10
+          chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: Upload Debug APK
+      - name: Show Result
+        if: always()
+        run: |
+          echo "=== آخر 50 سطر من الـ Build ==="
+          tail -n 50 build.log
+          echo "=== ملفات APK ==="
+          find . -name "*.apk" -type f || echo "لم يتم إنشاء APK"
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WorldMondial-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
