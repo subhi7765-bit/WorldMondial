@@ -25,12 +25,12 @@ jobs:
       - name: Make Gradle Executable
         run: chmod +x gradlew
 
-      - name: Show Project Structure
+      - name: Show Full Project Structure
         run: |
           echo "=== Root Files ==="
           ls -la
-          echo "=== settings.gradle.kts ==="
-          cat settings.gradle.kts || echo "Not found"
+          echo "=== settings.gradle.kts Content ==="
+          cat settings.gradle.kts || echo "settings.gradle.kts not found"
           echo "=== Available Projects ==="
           ./gradlew projects --console=plain
 
