@@ -13,13 +13,13 @@ jobs:
 
       - name: Verify project.txt
         run: |
+          echo "🔍 Checking project.txt..."
+          ls -la project.txt || echo "File not found"
           if [ ! -f "project.txt" ]; then
-            echo "❌ project.txt غير موجود في جذر الريبو!"
-            ls -la
+            echo "❌ project.txt is missing!"
             exit 1
-          else
-            echo "✅ project.txt موجود - الحجم: $(wc -c < project.txt) بايت"
           fi
+          echo "✅ project.txt found - Size: $(wc -c < project.txt) bytes"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Extract Files from project.txt
+      - name: Extract All Files from project.txt
         run: |
           python3 - << 'PYEOF'
           import os, re, sys
@@ -48,7 +48,7 @@ jobs:
               with open(filepath, 'w', encoding='utf-8') as out:
                   out.write(body)
               count += 1
-          print(f"✅ تم استخراج {count} ملف بنجاح")
+          print(f"✅ Successfully extracted {count} files")
           PYEOF
 
       - name: Create google-services.json
@@ -69,13 +69,13 @@ jobs:
         run: |
           ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: Show Result
+      - name: Show Build Result
         if: always()
         run: |
-          echo "=== آخر 50 سطر من الـ Build ==="
-          tail -n 50 build.log
-          echo "=== ملفات APK ==="
-          find . -name "*.apk" -type f || echo "لم يتم إنشاء APK"
+          echo "=== BUILD LOG ==="
+          tail -n 60 build.log
+          echo "=== APK FILES ==="
+          find . -name "*.apk" -type f || echo "No APK found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
