@@ -25,15 +25,15 @@ jobs:
       - name: Make Gradle Executable
         run: chmod +x gradlew
 
-      - name: Check Project Structure
+      - name: Diagnose Project Structure
         run: |
-          echo "=== Root files ==="
+          echo "=== Root Files ==="
           ls -la
-          echo "=== Settings file ==="
-          cat settings.gradle.kts || echo "settings.gradle.kts not found"
-          echo "=== App folder ==="
-          ls -la app || echo "app folder not found"
-          echo "=== Available tasks ==="
+          echo "=== settings.gradle.kts ==="
+          cat settings.gradle.kts || echo "Not found"
+          echo "=== App Folder ==="
+          ls -la app || echo "App folder not found"
+          echo "=== Available Projects ==="
           ./gradlew projects --console=plain
 
       - name: Build Debug APK
