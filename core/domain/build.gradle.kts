@@ -10,6 +10,5 @@ android {
 }
 
 dependencies {
-    // Pure business rule layers, keeping native and clean
     implementation(libs.kotlinx.coroutines.core)
 }
