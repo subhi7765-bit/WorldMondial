@@ -25,19 +25,17 @@ jobs:
       - name: Make Gradle Executable
         run: chmod +x gradlew
 
-      - name: Diagnose Project Structure
+      - name: Show Project Structure
         run: |
           echo "=== Root Files ==="
           ls -la
           echo "=== settings.gradle.kts ==="
           cat settings.gradle.kts || echo "Not found"
-          echo "=== App Folder ==="
-          ls -la app || echo "App folder not found"
           echo "=== Available Projects ==="
           ./gradlew projects --console=plain
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
