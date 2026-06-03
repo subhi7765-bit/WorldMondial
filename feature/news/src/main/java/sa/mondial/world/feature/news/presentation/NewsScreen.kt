@@ -1,0 +1,176 @@
+package sa.mondial.world.feature.news.presentation
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import sa.mondial.world.core.common.UiState
+import sa.mondial.world.core.domain.News
+import sa.mondial.world.feature.matches.presentation.PullToRefreshBox
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewsScreen(
+    viewModel: NewsViewModel,
+    onNavigateToDetails: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val language by viewModel.currentLanguage.collectAsState()
+    val isAr = language == "ar"
+
+    val listState = rememberLazyListState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (isAr) "تطورات المونديال" else "Mondial News Flash") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            )
+        },
+        modifier = modifier
+    ) { innerPadding ->
+
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.loadMondialNews(forceRefresh = true) },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (val state = uiState) {
+                is UiState.Loading -> {
+                    ShimmerNewsLoader()
+                }
+                is UiState.Success -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(state.data, key = { it.id }) { newsItem ->
+                            NewsCard(news = newsItem, isAr = isAr, onClick = { onNavigateToDetails(newsItem.id) })
+                        }
+                    }
+                }
+                is UiState.Error -> {
+                    NewsErrorState(message = state.displayMessage) { viewModel.loadMondialNews(forceRefresh = true) }
+                }
+                is UiState.Empty -> {
+                    NewsEmptyState(isAr = isAr)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsCard(
+    news: News,
+    isAr: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Category Badge
+            Box(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = if (isAr) news.categoryAr else news.categoryEn,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = if (isAr) news.titleAr else news.titleEn,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isAr) news.readTimeAr else news.readTimeEn,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
+                if (news.isTrending) {
+                    Text(
+                        text = if (isAr) "🔥 شائع" else "🔥 Trending",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFE65100)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ShimmerNewsLoader() {
+    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Gray.copy(alpha = 0.15f))
+            )
+        }
+    }
+}
+
+@Composable
+fun NewsErrorState(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = message, color = MaterialTheme.colorScheme.error)
+        Button(onClick = onRetry, modifier = Modifier.padding(top = 10.dp)) {
+            Text("Re-load News Feed")
+        }
+    }
+}
+
+@Composable
+fun NewsEmptyState(isAr: Boolean) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.")
+    }
+}

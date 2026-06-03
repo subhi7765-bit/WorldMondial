@@ -1,0 +1,14 @@
+package sa.mondial.world.core.network.api
+
+import retrofit2.http.GET
+import retrofit2.http.Query
+import sa.mondial.world.core.network.dto.NewsResponseDto
+
+interface NewsApiService {
+    @GET("/v2/everything")
+    suspend fun getNews(
+        @Query("q") query: String = "world cup",
+        @Query("language") language: String = "ar,en",
+        @Query("sortBy") sortBy: String = "publishedAt"
+    ): NewsResponseDto
+}

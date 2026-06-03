@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stadium">Stadium</string>
+    <string name="open_in_maps">Open in Maps</string>
+    <string name="share_match">Share Match</string>
+    <string name="settings_title">System Settings</string>
+    <string name="language">Language</string>
+    <string name="language_english">English</string>
+    <string name="language_arabic">العربية</string>
+    <string name="theme">Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System Default</string>
+    <string name="notifications">Notifications</string>
+    <string name="live_alerts">Live Goal Alerts</string>
+    <string name="live_alerts_desc">Receive push alerts instantly on goals</string>
+</resources>
