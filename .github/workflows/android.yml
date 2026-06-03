@@ -22,128 +22,30 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Comprehensive Project Fix & Build
+      - name: Fix & Build Debug APK
         run: |
           python3 - << 'PYEOF'
-          import os, re, sys, subprocess, textwrap, shutil
+          import os, re, sys, subprocess
 
           def run(cmd):
               print(f"→ {cmd}")
               r = subprocess.run(cmd, shell=True, text=True, capture_output=True)
-              print(r.stdout[-1000:] if len(r.stdout) > 1000 else r.stdout)
+              print(r.stdout[-1200:] if len(r.stdout) > 1200 else r.stdout)
               if r.stderr: print("STDERR:", r.stderr[-800:])
               if r.returncode != 0:
-                  print(f"❌ Failed: {cmd}")
+                  print(f"❌ Failed with {r.returncode}")
                   sys.exit(r.returncode)
-              return r.returncode
 
-          # ====================== 1. Fix Gradle Files ======================
-          with open('settings.gradle.kts', 'w', encoding='utf-8') as f:
-              f.write('''pluginManagement {
-                  repositories { google(); mavenCentral(); gradlePluginPortal() }
-              }
-              dependencyResolutionManagement {
-                  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-                  repositories { google(); mavenCentral() }
-              }
-              rootProject.name = "WorldMondial"
-              include(":app")
-              include(":core:common", ":core:di", ":core:network", ":core:database", ":core:data", ":core:domain", ":core:ui", ":core:sync", ":core:testing", ":core:notifications", ":core:analytics")
-              include(":feature:matches", ":feature:news", ":feature:settings")
-              ''')
-
-          with open('build.gradle.kts', 'w', encoding='utf-8') as f:
-              f.write('''plugins {
-                  alias(libs.plugins.android.application) apply false
-                  alias(libs.plugins.android.library) apply false
-                  alias(libs.plugins.kotlin.android) apply false
-                  alias(libs.plugins.kotlin.compose) apply false
-                  alias(libs.plugins.kotlin.serialization) apply false
-                  alias(libs.plugins.ksp) apply false
-                  alias(libs.plugins.hilt) apply false
-                  alias(libs.plugins.google.services) apply false
-              }
-
-              subprojects {
-                  tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-                      kotlinOptions { jvmTarget = "17" }
-                  }
-              }
-              ''')
-
-          # ====================== 2. Fix libs.versions.toml ======================
-          os.makedirs('gradle', exist_ok=True)
-          with open('gradle/libs.versions.toml', 'w', encoding='utf-8') as f:
-              f.write('''[versions]
-          kotlin = "2.0.21"
-          agp = "8.7.2"
-          compose = "1.7.5"
-          hilt = "2.55"
-          room = "2.7.1"
-          paging = "3.3.2"
-          navigation = "2.8.4"
-          retrofit = "2.11.0"
-          okhttp = "4.12.0"
-          datastore = "1.1.1"
-          coil = "2.6.0"
-          ksp = "2.0.21-1.0.26"
-
-          [libraries]
-          hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
-          hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-          androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
-          androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose" }
-          androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
-          kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.6.3" }
-          room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-          room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-          retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
-          okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-          androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
-          coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-
-          [plugins]
-          android-application = { id = "com.android.application", version.ref = "agp" }
-          android-library = { id = "com.android.library", version.ref = "agp" }
-          kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-          kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-          ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-          hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-          google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
-          ''')
-
-          # ====================== 3. Fix Common Compilation Issues ======================
-          # Fix Hilt in core/common
-          common = 'core/common/build.gradle.kts'
-          if os.path.exists(common):
-              c = open(common).read()
-              if 'hilt' not in c.lower():
-                  c = c.replace('dependencies {', '''dependencies {
-              implementation(libs.hilt.android)
-              ksp(libs.hilt.compiler)''')
-              open(common, 'w').write(c)
-
-          # Fix AppError.kt
-          app_error = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
-          if os.path.exists(app_error):
-              c = open(app_error).read()
-              c = re.sub(r'data class Network\(val code: Int, val message: String\?\)', 
-                        'data class Network(val code: Int, override val message: String?)', c)
-              open(app_error, 'w').write(c)
-
-          # Fix ErrorHandler.kt (retrofit import)
-          error_handler = 'core/common/src/main/java/sa/mondial/world/core/common/ErrorHandler.kt'
-          if os.path.exists(error_handler):
-              c = open(error_handler).read()
-              if 'retrofit2.HttpException' not in c:
-                  c = 'import retrofit2.HttpException\n' + c
-              open(error_handler, 'w').write(c)
-
-          # ====================== 4. Build ======================
+          # Basic fixes for common issues
           run("chmod +x gradlew")
-          print("🔨 Starting final build...")
-          run("./gradlew :app:assembleDebug --stacktrace --no-daemon --info | tail -n 200")
+
+          # Build with more verbose output
+          print("🔨 Building :app:assembleDebug ...")
+          run("./gradlew :app:assembleDebug --stacktrace --no-daemon --info | tail -n 300")
+
+          # List all generated APKs for debugging
+          print("\n📁 Generated APK files:")
+          run("find app/build/outputs -name '*.apk' | head -20")
 
           PYEOF
 
@@ -151,5 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WorldMondial-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
