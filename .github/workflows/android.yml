@@ -13,13 +13,12 @@ jobs:
 
       - name: Verify project.txt
         run: |
-          echo "🔍 Checking project.txt..."
-          ls -la project.txt || echo "File not found"
           if [ ! -f "project.txt" ]; then
             echo "❌ project.txt is missing!"
+            ls -la
             exit 1
           fi
-          echo "✅ project.txt found - Size: $(wc -c < project.txt) bytes"
+          echo "✅ project.txt found"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,7 +26,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Extract All Files from project.txt
+      - name: Extract Project Files
         run: |
           python3 - << 'PYEOF'
           import os, re, sys
@@ -48,7 +47,7 @@ jobs:
               with open(filepath, 'w', encoding='utf-8') as out:
                   out.write(body)
               count += 1
-          print(f"✅ Successfully extracted {count} files")
+          print(f"✅ Extracted {count} files")
           PYEOF
 
       - name: Create google-services.json
@@ -56,6 +55,81 @@ jobs:
           mkdir -p app
           cat > app/google-services.json << 'EOF'
           {"project_info":{"project_number":"940789403342","project_id":"world-mondial"},"client":[{"client_info":{"android_client_info":{"package_name":"sa.mondial.world"}},"api_key":[{"current_key":"AIzaSyD5QcgMhaHvVkvChUqEVlArCwAO9F84RF0"}]}],"configuration_version":"1"}
+          EOF
+
+      - name: Create libs.versions.toml
+        run: |
+          mkdir -p gradle
+          cat > gradle/libs.versions.toml << 'TOML'
+          [versions]
+          kotlin = "2.0.21"
+          compose = "1.7.5"
+          material3 = "1.3.1"
+          room = "2.7.1"
+          hilt = "2.55"
+          paging = "3.3.2"
+          androidGradlePlugin = "8.7.2"
+          ksp = "2.0.21-1.0.26"
+          kotlinxSerialization = "1.6.3"
+          androidxNavigation = "2.8.4"
+          timber = "5.0.1"
+          okhttp = "4.12.0"
+          retrofit = "2.11.0"
+          lifecycle = "2.8.7"
+          datastore = "1.1.1"
+          coil = "2.6.0"
+          junit = "4.13.2"
+          mockk = "1.13.10"
+          turbine = "1.1.0"
+
+          [libraries]
+          androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
+          androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+          androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigation" }
+          kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+          hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+          hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+          androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+          timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+          kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version = "1.9.0" }
+          retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+          room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+          room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+          room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+          androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+          coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+          androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
+          androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
+          junit = { group = "junit", name = "junit", version.ref = "junit" }
+          mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+          turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+          material-icons-extended = "androidx.compose.material:material-icons-extended:1.7.5"
+          androidx-appcompat = "androidx.appcompat:appcompat:1.7.0"
+
+          [plugins]
+          google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+          android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+          android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+          kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+          kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+          ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+          hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+          TOML
+
+      - name: Root build.gradle.kts
+        run: |
+          cat > build.gradle.kts << 'EOF'
+          plugins {
+              alias(libs.plugins.android.application) apply false
+              alias(libs.plugins.android.library) apply false
+              alias(libs.plugins.kotlin.android) apply false
+              alias(libs.plugins.kotlin.compose) apply false
+              alias(libs.plugins.kotlin.serialization) apply false
+              alias(libs.plugins.ksp) apply false
+              alias(libs.plugins.hilt) apply false
+              alias(libs.plugins.google.services) apply false
+          }
           EOF
 
       - name: Generate Gradle Wrapper
@@ -72,8 +146,8 @@ jobs:
       - name: Show Build Result
         if: always()
         run: |
-          echo "=== BUILD LOG ==="
-          tail -n 60 build.log
+          echo "=== LAST 60 LINES ==="
+          tail -n 60 build.log || echo "build.log not found"
           echo "=== APK FILES ==="
           find . -name "*.apk" -type f || echo "No APK found"
 
