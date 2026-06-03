@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -22,13 +22,24 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make gradlew Executable
+      - name: Make Gradle Executable
         run: chmod +x gradlew
+
+      - name: Check Project Structure
+        run: |
+          echo "=== Root files ==="
+          ls -la
+          echo "=== Settings file ==="
+          cat settings.gradle.kts || echo "settings.gradle.kts not found"
+          echo "=== App folder ==="
+          ls -la app || echo "app folder not found"
+          echo "=== Available tasks ==="
+          ./gradlew projects --console=plain
 
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: WorldMondial-Debug-APK
