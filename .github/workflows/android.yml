@@ -22,30 +22,46 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Fix & Build Debug APK
+      - name: Extract Project & Build APK
         run: |
           python3 - << 'PYEOF'
-          import os, re, sys, subprocess
+          import os, re, sys, subprocess, shutil
 
           def run(cmd):
               print(f"→ {cmd}")
               r = subprocess.run(cmd, shell=True, text=True, capture_output=True)
-              print(r.stdout[-1200:] if len(r.stdout) > 1200 else r.stdout)
-              if r.stderr: print("STDERR:", r.stderr[-800:])
+              print(r.stdout[-800:] if len(r.stdout) > 800 else r.stdout)
+              if r.stderr: print("STDERR:", r.stderr[-600:])
               if r.returncode != 0:
-                  print(f"❌ Failed with {r.returncode}")
+                  print(f"❌ Failed: {cmd}")
                   sys.exit(r.returncode)
 
-          # Basic fixes for common issues
+          # 1. Extract from project.txt if exists
+          if os.path.exists('project.txt'):
+              print("📦 Extracting from project.txt...")
+              content = open('project.txt', encoding='utf-8').read()
+              pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
+              count = 0
+              for m in pattern.finditer(content):
+                  fp = m.group(1).strip().lstrip('/')
+                  body = m.group(2).rstrip('\n')
+                  if fp:
+                      os.makedirs(os.path.dirname(fp), exist_ok=True)
+                      open(fp, 'w', encoding='utf-8').write(body)
+                      count += 1
+              print(f"✅ Extracted {count} files from project.txt")
+
+          # 2. Ensure Gradle Wrapper
           run("chmod +x gradlew")
 
-          # Build with more verbose output
-          print("🔨 Building :app:assembleDebug ...")
-          run("./gradlew :app:assembleDebug --stacktrace --no-daemon --info | tail -n 300")
+          # 3. Build
+          print("🔨 Building Debug APK...")
+          run("./gradlew :app:assembleDebug --stacktrace --no-daemon")
 
-          # List all generated APKs for debugging
-          print("\n📁 Generated APK files:")
-          run("find app/build/outputs -name '*.apk' | head -20")
+          # 4. Show generated files
+          print("\n📁 APK Search Result:")
+          run("find app/build/outputs -name '*.apk' -type f")
+          run("ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo 'No debug folder'")
 
           PYEOF
 
