@@ -19,25 +19,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle with Cache
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle Executable
+      - name: Make gradlew Executable
         run: chmod +x gradlew
-
-      - name: Check Project Structure
-        run: |
-          echo "📁 Project files:"
-          ls -la
-          echo "📁 App folder:"
-          ls -la app || echo "App folder not found"
-          echo "📁 Gradle files:"
-          ls -la gradlew gradle/wrapper/ || echo "Gradle wrapper not found"
 
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Upload Debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WorldMondial-Debug-APK
