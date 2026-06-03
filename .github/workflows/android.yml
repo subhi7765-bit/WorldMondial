@@ -51,7 +51,6 @@ jobs:
           src = "project.txt"
           if not os.path.exists(src):
               print("❌ project.txt not found!"); sys.exit(1)
-
           content = read(src)
           pattern = re.compile(
               r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)',
@@ -96,11 +95,6 @@ jobs:
           print("✅ google-services.json")
 
           # ── 4. libs.versions.toml (FULL FIX) ─────────────────────────
-          #  Bugs in bundle:
-          #  - material3 used compose version (1.7.5) → needs own 1.3.1
-          #  - kotlinx-serialization-json group was "kotlinx.serialization"
-          #  - missing: coroutines-core, retrofit-serialization, okhttp-logging
-          #  - missing: lifecycle refs, test-rules, google-services plugin
           write('gradle/libs.versions.toml', textwrap.dedent("""\
           [versions]
           kotlin               = "2.0.21"
@@ -164,7 +158,7 @@ jobs:
           """))
           print("✅ libs.versions.toml")
 
-          # ── 5. Root build.gradle.kts — add google-services plugin ────
+          # ── 5. Root build.gradle.kts ──────────────────────────────────
           write('build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.application)  apply false
@@ -192,7 +186,7 @@ jobs:
           """))
           print("✅ root build.gradle.kts")
 
-          # ── 6. app/build.gradle.kts — fix plugin + add missing deps ──
+          # ── 6. app/build.gradle.kts ───────────────────────────────────
           p = 'app/build.gradle.kts'
           c = read(p)
           c = c.replace(
@@ -206,6 +200,7 @@ jobs:
               '    implementation("androidx.core:core-ktx:1.13.1")\n'
               '    implementation("androidx.activity:activity-compose:1.9.3")\n'
               '    implementation("androidx.compose.material:material-icons-extended:1.7.5")\n'
+              '    implementation("com.google.android.material:material:1.12.0")\n'
               '    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n'
           )
           if 'androidx.appcompat:appcompat' not in c:
@@ -236,7 +231,7 @@ jobs:
               write(p, c)
           print("✅ feature/matches pulltorefresh removed")
 
-          # ── 9. AppError.kt — message must override Throwable.message ──
+          # ── 9. AppError.kt — override val message ─────────────────────
           patch(
               'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt',
               'data class Network(val code: Int, val message: String?)',
@@ -244,7 +239,7 @@ jobs:
           )
           print("✅ AppError.kt")
 
-          # ── 10. AuthRepository.kt — imports were after interface ───────
+          # ── 10. AuthRepository.kt — imports after interface (syntax err)
           write(
               'core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
@@ -276,14 +271,13 @@ jobs:
           )
           print("✅ AuthRepository.kt")
 
-          # ── 11. SettingsScreen.kt — wrong R import (app R ≠ feature R) ─
+          # ── 11. SettingsScreen.kt — wrong R import ────────────────────
           p = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
           if os.path.exists(p):
               c = read(p)
               c = c.replace('import sa.mondial.world.R',
                             'import sa.mondial.world.feature.settings.R')
               write(p, c)
-
           write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -303,10 +297,14 @@ jobs:
           print("✅ SettingsScreen R-import + strings.xml")
 
           # ── 12. Missing app/res files ─────────────────────────────────
+          # FIX: parent changed from Theme.Material3.DayNight.NoActionBar
+          #      (requires com.google.android.material — now added above)
+          #      to Theme.MaterialComponents.DayNight.NoActionBar which
+          #      ships inside com.google.android.material:material
           write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="Theme.WorldMondial" parent="Theme.Material3.DayNight.NoActionBar" />
+              <style name="Theme.WorldMondial" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
               <style name="Theme.WorldMondial.NoActionBar" parent="Theme.WorldMondial" />
           </resources>
           """))
@@ -372,7 +370,7 @@ jobs:
               if nc != c: write(fp, nc)
           print("✅ compileOptions Java 17")
 
-          # ── 15. Gradle wrapper — safe empty-project approach ──────────
+          # ── 15. Gradle wrapper (safe empty-project approach) ──────────
           GRADLE_VER = "8.9"
           run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp")
           run(f"unzip -q /tmp/gradle-{GRADLE_VER}-bin.zip -d /tmp/gradle-inst")
