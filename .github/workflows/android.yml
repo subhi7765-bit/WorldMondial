@@ -4,421 +4,152 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['project.txt']
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
 
-      - name: Build APK (single Python script)
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Comprehensive Project Fix & Build
         run: |
-          python3 << 'PYEOF'
-          import os, re, sys, subprocess, shutil, stat, textwrap
+          python3 - << 'PYEOF'
+          import os, re, sys, subprocess, textwrap, shutil
 
-          def run(cmd, check=True):
-              print(f"$ {cmd[:120]}")
-              r = subprocess.run(cmd, shell=True)
-              if check and r.returncode != 0:
-                  print(f"❌ Failed (exit {r.returncode})")
+          def run(cmd):
+              print(f"→ {cmd}")
+              r = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+              print(r.stdout[-1000:] if len(r.stdout) > 1000 else r.stdout)
+              if r.stderr: print("STDERR:", r.stderr[-800:])
+              if r.returncode != 0:
+                  print(f"❌ Failed: {cmd}")
                   sys.exit(r.returncode)
               return r.returncode
 
-          def read(p):
-              with open(p, encoding='utf-8') as f: return f.read()
+          # ====================== 1. Fix Gradle Files ======================
+          with open('settings.gradle.kts', 'w', encoding='utf-8') as f:
+              f.write('''pluginManagement {
+                  repositories { google(); mavenCentral(); gradlePluginPortal() }
+              }
+              dependencyResolutionManagement {
+                  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                  repositories { google(); mavenCentral() }
+              }
+              rootProject.name = "WorldMondial"
+              include(":app")
+              include(":core:common", ":core:di", ":core:network", ":core:database", ":core:data", ":core:domain", ":core:ui", ":core:sync", ":core:testing", ":core:notifications", ":core:analytics")
+              include(":feature:matches", ":feature:news", ":feature:settings")
+              ''')
 
-          def write(p, c):
-              d = os.path.dirname(p)
-              if d: os.makedirs(d, exist_ok=True)
-              with open(p, 'w', encoding='utf-8') as f: f.write(c)
+          with open('build.gradle.kts', 'w', encoding='utf-8') as f:
+              f.write('''plugins {
+                  alias(libs.plugins.android.application) apply false
+                  alias(libs.plugins.android.library) apply false
+                  alias(libs.plugins.kotlin.android) apply false
+                  alias(libs.plugins.kotlin.compose) apply false
+                  alias(libs.plugins.kotlin.serialization) apply false
+                  alias(libs.plugins.ksp) apply false
+                  alias(libs.plugins.hilt) apply false
+                  alias(libs.plugins.google.services) apply false
+              }
 
-          def patch(p, old, new):
-              if not os.path.exists(p): return
-              c = read(p)
-              if old in c:
-                  write(p, c.replace(old, new, 1))
-
-          # ── 1. Extract all source files from project.txt ──────────────
-          src = "project.txt"
-          if not os.path.exists(src):
-              print("❌ project.txt not found!"); sys.exit(1)
-          content = read(src)
-          pattern = re.compile(
-              r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)',
-              re.DOTALL
-          )
-          count = 0
-          for m in pattern.finditer(content):
-              fp   = m.group(1).strip().lstrip('/')
-              body = m.group(2).rstrip('\n')
-              write(fp, body)
-              count += 1
-          print(f"✅ Extracted {count} source files")
-
-          # ── 2. gradle.properties ──────────────────────────────────────
-          write('gradle.properties',
-              'android.useAndroidX=true\n'
-              'android.enableJetifier=true\n'
-              'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n'
-              'org.gradle.daemon=false\n'
-              'org.gradle.parallel=false\n'
-              'kotlin.jvm.target.validation.mode=WARNING\n')
-          print("✅ gradle.properties")
-
-          # ── 3. google-services.json ───────────────────────────────────
-          write('app/google-services.json', """{
-            "project_info":{
-              "project_number":"940789403342",
-              "project_id":"world-mondial",
-              "storage_bucket":"world-mondial.firebasestorage.app"
-            },
-            "client":[{
-              "client_info":{
-                "mobilesdk_app_id":"1:940789403342:android:088eaf9d6bdb4a3e9e4a9f",
-                "android_client_info":{"package_name":"sa.mondial.world"}
-              },
-              "oauth_client":[],
-              "api_key":[{"current_key":"AIzaSyD5QcgMhaHvVkvChUqEVlArCwAO9F84RF0"}],
-              "services":{"appinvite_service":{"other_platform_oauth_client":[]}}
-            }],
-            "configuration_version":"1"
-          }""")
-          print("✅ google-services.json")
-
-          # ── 4. libs.versions.toml (FULL FIX) ─────────────────────────
-          write('gradle/libs.versions.toml', textwrap.dedent("""\
-          [versions]
-          kotlin               = "2.0.21"
-          compose              = "1.7.5"
-          material3            = "1.3.1"
-          room                 = "2.7.1"
-          hilt                 = "2.55"
-          paging               = "3.3.2"
-          androidGradlePlugin  = "8.7.2"
-          ksp                  = "2.0.21-1.0.26"
-          kotlinxSerialization = "1.6.3"
-          androidxNavigation   = "2.8.4"
-          timber               = "5.0.1"
-          okhttp               = "4.12.0"
-          retrofit             = "2.11.0"
-          lifecycle            = "2.8.7"
-          datastore            = "1.1.1"
-          coil                 = "2.6.0"
-          junit                = "4.13.2"
-          mockk                = "1.13.10"
-          turbine              = "1.1.0"
-
-          [libraries]
-          androidx-compose-ui                  = { group = "androidx.compose.ui",        name = "ui",                              version.ref = "compose"              }
-          androidx-compose-material3           = { group = "androidx.compose.material3", name = "material3",                       version.ref = "material3"            }
-          androidx-navigation-compose          = { group = "androidx.navigation",         name = "navigation-compose",              version.ref = "androidxNavigation"   }
-          kotlinx-serialization-json           = { group = "org.jetbrains.kotlinx",       name = "kotlinx-serialization-json",      version.ref = "kotlinxSerialization" }
-          hilt-android                         = { group = "com.google.dagger",           name = "hilt-android",                    version.ref = "hilt"                 }
-          hilt-compiler                        = { group = "com.google.dagger",           name = "hilt-compiler",                   version.ref = "hilt"                 }
-          androidx-hilt-navigation-compose     = { group = "androidx.hilt",               name = "hilt-navigation-compose",         version = "1.2.0"                    }
-          androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle",          name = "lifecycle-viewmodel-compose",     version.ref = "lifecycle"            }
-          androidx-lifecycle-runtime-compose   = { group = "androidx.lifecycle",          name = "lifecycle-runtime-compose",       version.ref = "lifecycle"            }
-          timber                               = { group = "com.jakewharton.timber",      name = "timber",                          version.ref = "timber"               }
-          kotlinx-coroutines-android           = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-android",      version = "1.9.0"                    }
-          kotlinx-coroutines-core              = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-core",         version = "1.9.0"                    }
-          kotlinx-coroutines-test              = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-test",         version = "1.9.0"                    }
-          retrofit-core                        = { group = "com.squareup.retrofit2",      name = "retrofit",                        version.ref = "retrofit"             }
-          retrofit-kotlinx-serialization       = { group = "com.squareup.retrofit2",      name = "converter-kotlinx-serialization", version.ref = "retrofit"             }
-          okhttp-logging                       = { group = "com.squareup.okhttp3",        name = "logging-interceptor",             version.ref = "okhttp"               }
-          room-runtime                         = { group = "androidx.room",               name = "room-runtime",                    version.ref = "room"                 }
-          room-ktx                             = { group = "androidx.room",               name = "room-ktx",                        version.ref = "room"                 }
-          room-compiler                        = { group = "androidx.room",               name = "room-compiler",                   version.ref = "room"                 }
-          androidx-datastore-preferences       = { group = "androidx.datastore",          name = "datastore-preferences",           version.ref = "datastore"            }
-          coil-compose                         = { group = "io.coil-kt",                  name = "coil-compose",                    version.ref = "coil"                 }
-          androidx-paging-runtime              = { group = "androidx.paging",             name = "paging-runtime",                  version.ref = "paging"               }
-          androidx-paging-compose              = { group = "androidx.paging",             name = "paging-compose",                  version.ref = "paging"               }
-          junit                                = { group = "junit",                       name = "junit",                           version.ref = "junit"                }
-          mockk                                = { group = "io.mockk",                   name = "mockk",                           version.ref = "mockk"                }
-          turbine                              = { group = "app.cash.turbine",            name = "turbine",                         version.ref = "turbine"              }
-          androidx-test-rules                  = { group = "androidx.test",               name = "rules",                           version = "1.6.1"                    }
-
-          [plugins]
-          google-services      = { id = "com.google.gms.google-services",            version = "4.4.2"                   }
-          android-application  = { id = "com.android.application",                   version.ref = "androidGradlePlugin" }
-          android-library      = { id = "com.android.library",                       version.ref = "androidGradlePlugin" }
-          kotlin-android       = { id = "org.jetbrains.kotlin.android",              version.ref = "kotlin"              }
-          kotlin-compose       = { id = "org.jetbrains.kotlin.plugin.compose",       version.ref = "kotlin"              }
-          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"              }
-          ksp                  = { id = "com.google.devtools.ksp",                   version.ref = "ksp"                 }
-          hilt                 = { id = "com.google.dagger.hilt.android",            version.ref = "hilt"                }
-          """))
-          print("✅ libs.versions.toml")
-
-          # ── 5. Root build.gradle.kts ──────────────────────────────────
-          write('build.gradle.kts', textwrap.dedent("""\
-          plugins {
-              alias(libs.plugins.android.application)  apply false
-              alias(libs.plugins.android.library)      apply false
-              alias(libs.plugins.kotlin.android)       apply false
-              alias(libs.plugins.kotlin.compose)       apply false
-              alias(libs.plugins.kotlin.serialization) apply false
-              alias(libs.plugins.ksp)                  apply false
-              alias(libs.plugins.hilt)                 apply false
-              alias(libs.plugins.google.services)      apply false
-          }
-
-          subprojects {
-              tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-                  compilerOptions {
-                      jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-                      freeCompilerArgs.addAll(
-                          "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-                          "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-                          "-opt-in=kotlinx.coroutines.FlowPreview"
-                      )
+              subprojects {
+                  tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                      kotlinOptions { jvmTarget = "17" }
                   }
               }
-          }
-          """))
-          print("✅ root build.gradle.kts")
+              ''')
 
-          # ── 6. app/build.gradle.kts ───────────────────────────────────
-          p = 'app/build.gradle.kts'
-          c = read(p)
-          c = c.replace(
-              'id("com.google.gms.google-services")',
-              'alias(libs.plugins.google.services)'
-          )
-          c = c.replace('isMinifyEnabled = true', 'isMinifyEnabled = false')
-          extra_deps = (
-              '    // ── added by CI fixer ────────────────────────────────\n'
-              '    implementation("androidx.appcompat:appcompat:1.7.0")\n'
-              '    implementation("androidx.core:core-ktx:1.13.1")\n'
-              '    implementation("androidx.activity:activity-compose:1.9.3")\n'
-              '    implementation("androidx.compose.material:material-icons-extended:1.7.5")\n'
-              '    implementation("com.google.android.material:material:1.12.0")\n'
-              '    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n'
-          )
-          if 'androidx.appcompat:appcompat' not in c:
-              c = c[:c.rfind('\n}')] + '\n' + extra_deps + '\n}'
-          write(p, c)
-          print("✅ app/build.gradle.kts")
+          # ====================== 2. Fix libs.versions.toml ======================
+          os.makedirs('gradle', exist_ok=True)
+          with open('gradle/libs.versions.toml', 'w', encoding='utf-8') as f:
+              f.write('''[versions]
+          kotlin = "2.0.21"
+          agp = "8.7.2"
+          compose = "1.7.5"
+          hilt = "2.55"
+          room = "2.7.1"
+          paging = "3.3.2"
+          navigation = "2.8.4"
+          retrofit = "2.11.0"
+          okhttp = "4.12.0"
+          datastore = "1.1.1"
+          coil = "2.6.0"
+          ksp = "2.0.21-1.0.26"
 
-          # ── 7. core/data — add Firebase Crashlytics dep ───────────────
-          p = 'core/data/build.gradle.kts'
-          if os.path.exists(p):
-              c = read(p)
-              if 'firebase-crashlytics' not in c:
-                  c = c[:c.rfind('\n}')] + \
-                      '\n    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n' \
-                      '    implementation(libs.retrofit.core)\n' \
-                      '}'
-                  write(p, c)
-          print("✅ core/data deps")
+          [libraries]
+          hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+          hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+          androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
+          androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose" }
+          androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+          kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.6.3" }
+          room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+          room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+          retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+          okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+          androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+          coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
-          # ── 8. feature/matches — remove non-existent artifact ─────────
-          p = 'feature/matches/build.gradle.kts'
-          if os.path.exists(p):
-              c = read(p)
-              c = re.sub(
-                  r'[ \t]*implementation\("androidx\.compose\.material3:material3-pulltorefresh:[^"]+"\)\n?',
-                  '', c
-              )
-              write(p, c)
-          print("✅ feature/matches pulltorefresh removed")
+          [plugins]
+          android-application = { id = "com.android.application", version.ref = "agp" }
+          android-library = { id = "com.android.library", version.ref = "agp" }
+          kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+          kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+          ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+          hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+          google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+          ''')
 
-          # ── 9. AppError.kt — override val message ─────────────────────
-          patch(
-              'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt',
-              'data class Network(val code: Int, val message: String?)',
-              'data class Network(val code: Int, override val message: String?)'
-          )
-          print("✅ AppError.kt")
+          # ====================== 3. Fix Common Compilation Issues ======================
+          # Fix Hilt in core/common
+          common = 'core/common/build.gradle.kts'
+          if os.path.exists(common):
+              c = open(common).read()
+              if 'hilt' not in c.lower():
+                  c = c.replace('dependencies {', '''dependencies {
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)''')
+              open(common, 'w').write(c)
 
-          # ── 10. AuthRepository.kt — imports after interface (syntax err)
-          write(
-              'core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
-              textwrap.dedent("""\
-              package sa.mondial.world.core.network
+          # Fix AppError.kt
+          app_error = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
+          if os.path.exists(app_error):
+              c = open(app_error).read()
+              c = re.sub(r'data class Network\(val code: Int, val message: String\?\)', 
+                        'data class Network(val code: Int, override val message: String?)', c)
+              open(app_error, 'w').write(c)
 
-              import dagger.Binds
-              import dagger.Module
-              import dagger.hilt.InstallIn
-              import dagger.hilt.components.SingletonComponent
-              import javax.inject.Inject
-              import javax.inject.Singleton
+          # Fix ErrorHandler.kt (retrofit import)
+          error_handler = 'core/common/src/main/java/sa/mondial/world/core/common/ErrorHandler.kt'
+          if os.path.exists(error_handler):
+              c = open(error_handler).read()
+              if 'retrofit2.HttpException' not in c:
+                  c = 'import retrofit2.HttpException\n' + c
+              open(error_handler, 'w').write(c)
 
-              interface AuthRepository {
-                  suspend fun refreshToken(): String?
-              }
-
-              @Singleton
-              class AuthRepositoryImpl @Inject constructor() : AuthRepository {
-                  override suspend fun refreshToken(): String? = "new_access_token_xyz987"
-              }
-
-              @Module
-              @InstallIn(SingletonComponent::class)
-              abstract class AuthModule {
-                  @Binds @Singleton
-                  abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
-              }
-              """)
-          )
-          print("✅ AuthRepository.kt")
-
-          # ── 11. SettingsScreen.kt — wrong R import ────────────────────
-          p = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
-          if os.path.exists(p):
-              c = read(p)
-              c = c.replace('import sa.mondial.world.R',
-                            'import sa.mondial.world.feature.settings.R')
-              write(p, c)
-          write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="settings_title">System Settings</string>
-              <string name="language">Language</string>
-              <string name="language_english">English</string>
-              <string name="language_arabic">Arabic</string>
-              <string name="theme">Theme</string>
-              <string name="theme_light">Light</string>
-              <string name="theme_dark">Dark</string>
-              <string name="theme_system">System Default</string>
-              <string name="notifications">Notifications</string>
-              <string name="live_alerts">Live Goal Alerts</string>
-              <string name="live_alerts_desc">Receive push alerts instantly on goals</string>
-          </resources>
-          """))
-          print("✅ SettingsScreen R-import + strings.xml")
-
-          # ── 12. Missing app/res files ─────────────────────────────────
-          # FIX: parent changed from Theme.Material3.DayNight.NoActionBar
-          #      (requires com.google.android.material — now added above)
-          #      to Theme.MaterialComponents.DayNight.NoActionBar which
-          #      ships inside com.google.android.material:material
-          write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.WorldMondial" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
-              <style name="Theme.WorldMondial.NoActionBar" parent="Theme.WorldMondial" />
-          </resources>
-          """))
-
-          if not os.path.exists('app/src/main/res/values/colors.xml'):
-              write('app/src/main/res/values/colors.xml', textwrap.dedent("""\
-              <?xml version="1.0" encoding="utf-8"?>
-              <resources>
-                  <color name="ic_launcher_background">#1565C0</color>
-                  <color name="black">#FF000000</color>
-                  <color name="white">#FFFFFFFF</color>
-              </resources>
-              """))
-
-          write('app/src/main/res/drawable/ic_launcher_foreground.xml', textwrap.dedent("""\
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#FFFFFF"
-                  android:pathData="M54,22 L70,54 L86,54 L73,66 L78,86 L54,74 L30,86 L35,66 L22,54 L38,54 Z"/>
-          </vector>
-          """))
-
-          icon_xml = textwrap.dedent("""\
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background"/>
-              <foreground android:drawable="@drawable/ic_launcher_foreground"/>
-          </adaptive-icon>
-          """)
-          for d in ['mipmap-anydpi-v26', 'mipmap-anydpi']:
-              write(f'app/src/main/res/{d}/ic_launcher.xml',       icon_xml)
-              write(f'app/src/main/res/{d}/ic_launcher_round.xml', icon_xml)
-          print("✅ App resources (themes, colors, icons)")
-
-          # ── 13. AndroidManifest.xml for every library module ──────────
-          lib_modules = [
-              'core/common', 'core/di', 'core/network', 'core/database',
-              'core/data', 'core/domain', 'core/ui', 'core/testing',
-              'core/notifications', 'core/analytics', 'core/sync',
-              'feature/matches', 'feature/news', 'feature/settings',
-          ]
-          for mod in lib_modules:
-              mf = f'{mod}/src/main/AndroidManifest.xml'
-              if not os.path.exists(mf):
-                  write(mf, '<?xml version="1.0" encoding="utf-8"?>\n<manifest />\n')
-          print(f"✅ AndroidManifest.xml for {len(lib_modules)} library modules")
-
-          # ── 14. compileOptions Java 17 for every library module ───────
-          compile_block = (
-              '\n        compileOptions {\n'
-              '            sourceCompatibility = JavaVersion.VERSION_17\n'
-              '            targetCompatibility = JavaVersion.VERSION_17\n'
-              '        }'
-          )
-          for mod in lib_modules:
-              fp = f'{mod}/build.gradle.kts'
-              if not os.path.exists(fp): continue
-              c = read(fp)
-              if 'compileOptions' in c: continue
-              nc = re.sub(r'(defaultConfig\s*\{[^}]*\})', r'\1' + compile_block, c, count=1)
-              if nc != c: write(fp, nc)
-          print("✅ compileOptions Java 17")
-
-          # ── 15. Gradle wrapper (safe empty-project approach) ──────────
-          GRADLE_VER = "8.9"
-          run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp")
-          run(f"unzip -q /tmp/gradle-{GRADLE_VER}-bin.zip -d /tmp/gradle-inst")
-          os.makedirs('/tmp/tmpwrapper', exist_ok=True)
-          write('/tmp/tmpwrapper/settings.gradle', 'rootProject.name = "tmp"')
-          run(
-              f"/tmp/gradle-inst/gradle-{GRADLE_VER}/bin/gradle wrapper "
-              f"--gradle-version {GRADLE_VER} --distribution-type bin "
-              f"--project-dir /tmp/tmpwrapper"
-          )
-          shutil.copytree('/tmp/tmpwrapper/gradle', 'gradle', dirs_exist_ok=True)
-          shutil.copy('/tmp/tmpwrapper/gradlew', 'gradlew')
-          os.chmod('gradlew', 0o755)
-          print("✅ Gradle wrapper")
-
-          # ── 16. Build Debug APK ───────────────────────────────────────
-          print("\n🔨 Building debug APK …")
-          rc = run(
-              './gradlew :app:assembleDebug --no-daemon --stacktrace '
-              '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"',
-              check=False
-          )
-          if rc != 0:
-              print("\n════ FILTERED ERRORS ════")
-              run(
-                  './gradlew :app:assembleDebug --no-daemon 2>&1 '
-                  '| grep -E "^e:|error:|Unresolved|Cannot access|not found|Caused by:|Task.*FAILED" '
-                  '| head -80',
-                  check=False
-              )
-              sys.exit(rc)
-
-          apk = None
-          for root, _, files in os.walk('app/build/outputs/apk/debug'):
-              for f in files:
-                  if f.endswith('.apk'):
-                      apk = os.path.join(root, f); break
-          if apk:
-              print(f"\n✅ SUCCESS — APK: {apk} ({os.path.getsize(apk)//1_048_576} MB)")
-          else:
-              print("❌ APK not found!"); sys.exit(1)
+          # ====================== 4. Build ======================
+          run("chmod +x gradlew")
+          print("🔨 Starting final build...")
+          run("./gradlew :app:assembleDebug --stacktrace --no-daemon --info | tail -n 200")
 
           PYEOF
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: WorldMondial-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
