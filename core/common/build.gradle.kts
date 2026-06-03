@@ -4,12 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "sa.mondial.world.core.common"
+    namespace = "sa.mondial.world.core.domain"
     compileSdk = 35
     defaultConfig { minSdk = 26 }
 }
 
 dependencies {
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.timber)
+    implementation(libs.kotlinx.coroutines.core)
 }
