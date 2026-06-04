@@ -1,57 +1,20 @@
-# .coderabbit.yaml - ملف الإعدادات مع جميع الصلاحيات
-language: "en-US"
-early_access: true
-
-chat:
-  auto_reply: true
+# إعدادات مراجعة CodeRabbit لمستودع WorldMondial
+language: "ar" # توجيه الروبوت لكتابة ملخصات المراجعة باللغة العربية إن أمكن
 
 reviews:
-  profile: "assertive"
-  request_changes_workflow: true
-  high_level_summary: true
-  poem: false
-  review_status: true
-  collapse_walkthrough: false
-  sequence_diagrams: true
-  changed_files_summary: true
+  profile: "chill" # نمط مراجعة متزن وغير مزعج
   auto_review:
-    enabled: true
-    drafts: true
-    base_branches:
-      - "main"
-      - "master"
-      - "develop"
-      - "release/*"
-      - "hotfix/*"
-  path_filters:
-    - "!**/node_modules/**"
-    - "!**/dist/**"
-    - "!**/build/**"
-    - "!**/out/**"
-    - "!**/.next/**"
-    - "!**/*.lock"
-    - "!**/*.min.js"
-    - "!**/coverage/**"
-  path_instructions:
-    - path: "**/*.js"
-      instructions: |
-        JavaScript specific reviews:
-        - Avoid using 'var', prefer 'const' and 'let'.
-        - Ensure try-catch blocks are used for asynchronous operations.
-    - path: "**/*.py"
-      instructions: |
-        Python specific reviews:
-        - Ensure type hints are used for function parameters and return values.
-        - Check for proper exception handling.
-  tools:
-    enabled: true
-    github-checks:
-      timeout_ms: 900000
+    enabled: true # تفعيل المراجعة التلقائية فور فتح أي Pull Request
+    drafts: false # عدم مراجعة مسودات الـ Pull Requests حتى تجهز تمامًا
+  high_level_summary: true # إنشاء ملخص شامل وعالي المستوى للتغييرات
 
-pre_merge_checks:
-  description:
-    mode: "error"
-  docstrings:
-    mode: "off"
-  test_coverage:
-    mode: "off"
+  # توجيهات مخصصة للذكاء الاصطناعي تركز على كود مشروعك
+  instructions: |
+    هذا المشروع مكتوب بلغة Kotlin بنسبة 100%. عند مراجعة الكود، يرجى التركيز على:
+    1. التأكد من كفاءة كود Kotlin واتباعه للممارسات القياسية (Best Practices).
+    2. فحص إدارة الذاكرة، وبنية الـ Coroutines إن وُجدت.
+    3. التحقق من سلامة البنية التحتية للمشروع (clean architecture / modular code) الموزعة بين مجلدات app و core و feature.
+
+# إعدادات الـ Chat التفاعلي داخل الـ Pull Request
+chat:
+  enabled: true
