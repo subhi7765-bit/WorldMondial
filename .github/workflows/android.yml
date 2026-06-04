@@ -44,7 +44,6 @@ jobs:
                   write(p, c.replace(old, new, 1))
                   return True
               return False
-
           # ── 1. Extract all source files from project.txt ──────────────
           src = "project.txt"
           if not os.path.exists(src):
@@ -61,7 +60,6 @@ jobs:
               write(fp, body)
               count += 1
           print(f"✅ Extracted {count} source files")
-
           # ── 2. gradle.properties ──────────────────────────────────────
           write('gradle.properties',
               'android.useAndroidX=true\n'
@@ -71,7 +69,6 @@ jobs:
               'org.gradle.parallel=false\n'
               'kotlin.jvm.target.validation.mode=WARNING\n')
           print("✅ gradle.properties")
-
           # ── 3. google-services.json ───────────────────────────────────
           write('app/google-services.json', """{
             "project_info":{
@@ -91,7 +88,6 @@ jobs:
             "configuration_version":"1"
           }""")
           print("✅ google-services.json")
-
           # ── 4. libs.versions.toml ─────────────────────────────────────
           write('gradle/libs.versions.toml', textwrap.dedent("""\
           [versions]
@@ -153,7 +149,6 @@ jobs:
           hilt                 = { id = "com.google.dagger.hilt.android",            version.ref = "hilt"                }
           """))
           print("✅ libs.versions.toml")
-
           # ── 5. Root build.gradle.kts ──────────────────────────────────
           write('build.gradle.kts', textwrap.dedent("""\
           plugins {
@@ -180,8 +175,7 @@ jobs:
           }
           """))
           print("✅ root build.gradle.kts")
-
-          # ── 6. core/common/build.gradle.kts — Hilt + Retrofit ─────────
+          # ── 6. core/common/build.gradle.kts ──────────────────────────
           write('core/common/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -207,8 +201,7 @@ jobs:
           }
           """))
           print("✅ core/common/build.gradle.kts")
-
-          # ── 7. core/domain/build.gradle.kts — Serialization ───────────
+          # ── 7. core/domain/build.gradle.kts ──────────────────────────
           write('core/domain/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -230,14 +223,10 @@ jobs:
           }
           """))
           print("✅ core/domain/build.gradle.kts")
-
           # ── 8. app/build.gradle.kts ───────────────────────────────────
           p = 'app/build.gradle.kts'
           c = read(p)
-          c = c.replace(
-              'id("com.google.gms.google-services")',
-              'alias(libs.plugins.google.services)'
-          )
+          c = c.replace('id("com.google.gms.google-services")', 'alias(libs.plugins.google.services)')
           c = c.replace('isMinifyEnabled = true', 'isMinifyEnabled = false')
           extra_deps = (
               '    // ── added by CI fixer ────────────────────────────────\n'
@@ -252,30 +241,23 @@ jobs:
               c = c[:c.rfind('\n}')] + '\n' + extra_deps + '\n}'
           write(p, c)
           print("✅ app/build.gradle.kts")
-
-          # ── 9. core/data — add Retrofit dep ───────────────────────────
+          # ── 9. core/data deps ─────────────────────────────────────────
           p = 'core/data/build.gradle.kts'
           if os.path.exists(p):
               c = read(p)
               if 'firebase-crashlytics' not in c:
                   c = c[:c.rfind('\n}')] + \
                       '\n    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n' \
-                      '    implementation(libs.retrofit.core)\n' \
-                      '}'
+                      '    implementation(libs.retrofit.core)\n}'
                   write(p, c)
           print("✅ core/data deps")
-
-          # ── 10. feature/matches — remove non-existent artifact ────────
+          # ── 10. feature/matches — remove pulltorefresh ────────────────
           p = 'feature/matches/build.gradle.kts'
           if os.path.exists(p):
               c = read(p)
-              c = re.sub(
-                  r'[ \t]*implementation\("androidx\.compose\.material3:material3-pulltorefresh:[^"]+"\)\n?',
-                  '', c
-              )
+              c = re.sub(r'[ \t]*implementation\("androidx\.compose\.material3:material3-pulltorefresh:[^"]+"\)\n?', '', c)
               write(p, c)
           print("✅ feature/matches pulltorefresh removed")
-
           # ── 11. AppError.kt — override val message ────────────────────
           ok = patch(
               'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt',
@@ -283,10 +265,8 @@ jobs:
               'data class Network(val code: Int, override val message: String?)'
           )
           print(f"✅ AppError.kt — patch {'applied' if ok else 'skipped (already fixed)'}")
-
           # ── 12. AuthRepository.kt ─────────────────────────────────────
-          write(
-              'core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
+          write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
               package sa.mondial.world.core.network
               import dagger.Binds
@@ -308,16 +288,13 @@ jobs:
                   @Binds @Singleton
                   abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
               }
-              """)
-          )
+              """))
           print("✅ AuthRepository.kt")
-
-          # ── 13. SettingsScreen.kt — wrong R import ────────────────────
+          # ── 13. SettingsScreen R import + strings.xml ─────────────────
           p = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
           if os.path.exists(p):
               c = read(p)
-              c = c.replace('import sa.mondial.world.R',
-                            'import sa.mondial.world.feature.settings.R')
+              c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
               write(p, c)
           write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
@@ -336,7 +313,6 @@ jobs:
           </resources>
           """))
           print("✅ SettingsScreen R-import + strings.xml")
-
           # ── 14. App resources ─────────────────────────────────────────
           write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
@@ -371,10 +347,9 @@ jobs:
           </adaptive-icon>
           """)
           for d in ['mipmap-anydpi-v26', 'mipmap-anydpi']:
-              write(f'app/src/main/res/{d}/ic_launcher.xml',       icon_xml)
+              write(f'app/src/main/res/{d}/ic_launcher.xml', icon_xml)
               write(f'app/src/main/res/{d}/ic_launcher_round.xml', icon_xml)
           print("✅ App resources (themes, colors, icons)")
-
           # ── 15. AndroidManifest.xml for every library module ──────────
           lib_modules = [
               'core/common', 'core/di', 'core/network', 'core/database',
@@ -387,8 +362,7 @@ jobs:
               if not os.path.exists(mf):
                   write(mf, '<?xml version="1.0" encoding="utf-8"?>\n<manifest />\n')
           print(f"✅ AndroidManifest.xml for {len(lib_modules)} library modules")
-
-          # ── 16. compileOptions Java 17 for every library module ───────
+          # ── 16. compileOptions Java 17 ────────────────────────────────
           compile_block = (
               '\n        compileOptions {\n'
               '            sourceCompatibility = JavaVersion.VERSION_17\n'
@@ -403,7 +377,6 @@ jobs:
               nc = re.sub(r'(defaultConfig\s*\{[^}]*\})', r'\1' + compile_block, c, count=1)
               if nc != c: write(fp, nc)
           print("✅ compileOptions Java 17")
-
           # ── 17. Gradle wrapper ────────────────────────────────────────
           GRADLE_VER = "8.9"
           run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp")
@@ -419,24 +392,31 @@ jobs:
           shutil.copy('/tmp/tmpwrapper/gradlew', 'gradlew')
           os.chmod('gradlew', 0o755)
           print("✅ Gradle wrapper")
-
           # ── 18. Build Debug APK ───────────────────────────────────────
           print("\n🔨 Building debug APK …")
-          rc = run(
+          build_proc = subprocess.run(
               './gradlew :app:assembleDebug --no-daemon '
-              '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" 2>&1 '
-              '| tee /tmp/build_full.log',
-              check=False
+              '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"',
+              shell=True,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT,
+              text=True
           )
+          rc = build_proc.returncode
+          build_out = build_proc.stdout
+          with open('/tmp/build_full.log', 'w') as f:
+              f.write(build_out)
+          lines = build_out.splitlines()
+          print('\n'.join(lines[-300:]))
           if rc != 0:
               print("\n════ KOTLIN ERRORS ════")
-              run('grep -n "^e: " /tmp/build_full.log | head -60', check=False)
+              for line in lines:
+                  if line.startswith('e: '):
+                      print(line)
               print("\n════ TASK FAILURES ════")
-              run(
-                  'grep -n "Task.*FAILED\\|Caused by:\\|Unresolved\\|Cannot access\\|not found\\|error:" '
-                  '/tmp/build_full.log | head -40',
-                  check=False
-              )
+              for line in lines:
+                  if any(x in line for x in ['FAILED','Unresolved','Cannot access','not found','Caused by:']):
+                      print(line)
               sys.exit(rc)
           apk = None
           for root, _, files in os.walk('app/build/outputs/apk/debug'):
