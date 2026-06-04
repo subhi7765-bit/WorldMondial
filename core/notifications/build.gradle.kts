@@ -8,14 +8,25 @@ plugins {
 android {
     namespace = "sa.mondial.world.core.notifications"
     compileSdk = 35
-    defaultConfig { minSdk = 26 }
+
+    defaultConfig {
+        minSdk = 26
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
+    implementation(project(":core:data"))
+    
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("com.google.firebase:firebase-messaging-ktx:24.1.0")
     implementation(libs.timber)
