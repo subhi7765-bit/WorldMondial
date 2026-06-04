@@ -10,16 +10,10 @@ workflows:
     triggering:
       events:
         - push
-      branch_mode: MATCH
-      branches:
-        - main
+      when:
+        branch: main
 
     scripts:
-      - name: Checkout code
-        script: |
-          git clone $CM_REPO_URL .
-          git checkout $CM_COMMIT
-
       - name: Make Gradle executable
         script: chmod +x gradlew
 
