@@ -1,7 +1,7 @@
 package sa.mondial.world.core.common
 
 sealed class AppError : Throwable() {
-    data class Network(val code: Int, val message: String?) : AppError()
+    data class Network(val code: Int, override val message: String?) : AppError()
     data class Database(val message: String, override val cause: Throwable?) : AppError()
     data class Business(val messageAr: String, val messageEn: String) : AppError()
     data class Unknown(override val cause: Throwable?) : AppError()
