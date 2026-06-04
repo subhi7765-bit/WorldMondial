@@ -216,7 +216,65 @@ jobs:
           }
           """))
           print("✅ core/domain/build.gradle.kts")
-          # ── 8. app/build.gradle.kts ───────────────────────────────────
+          # ── 8. core/network/build.gradle.kts — FIX: add serialization ─
+          write('core/network/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.serialization)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.network"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.retrofit.core)
+              implementation(libs.retrofit.kotlinx.serialization)
+              implementation(libs.kotlinx.serialization.json)
+              implementation(libs.okhttp.logging)
+              implementation(project(":core:common"))
+          }
+          """))
+          print("✅ core/network/build.gradle.kts")
+          # ── 9. core/notifications/build.gradle.kts — FIX: add analytics
+          write('core/notifications/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.notifications"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(project(":core:common"))
+              implementation(project(":core:analytics"))
+              implementation("com.google.firebase:firebase-messaging:24.0.0")
+              implementation("com.google.firebase:firebase-analytics:22.0.0")
+          }
+          """))
+          print("✅ core/notifications/build.gradle.kts")
+          # ── 10. app/build.gradle.kts ──────────────────────────────────
           p = 'app/build.gradle.kts'
           c = read(p)
           c = c.replace('id("com.google.gms.google-services")', 'alias(libs.plugins.google.services)')
@@ -234,7 +292,7 @@ jobs:
               c = c[:c.rfind('\n}')] + '\n' + extra_deps + '\n}'
           write(p, c)
           print("✅ app/build.gradle.kts")
-          # ── 9. core/data deps ─────────────────────────────────────────
+          # ── 11. core/data deps ────────────────────────────────────────
           p = 'core/data/build.gradle.kts'
           if os.path.exists(p):
               c = read(p)
@@ -244,14 +302,14 @@ jobs:
                       '    implementation(libs.retrofit.core)\n}'
                   write(p, c)
           print("✅ core/data deps")
-          # ── 10. feature/matches — remove pulltorefresh ────────────────
+          # ── 12. feature/matches — remove pulltorefresh ────────────────
           p = 'feature/matches/build.gradle.kts'
           if os.path.exists(p):
               c = read(p)
               c = re.sub(r'[ \t]*implementation\("androidx\.compose\.material3:material3-pulltorefresh:[^"]+"\)\n?', '', c)
               write(p, c)
           print("✅ feature/matches pulltorefresh removed")
-          # ── 11. AppError.kt — override val message (Network + Database)
+          # ── 13. AppError.kt — override val message (Network + Database)
           p = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
           if os.path.exists(p):
               c = read(p)
@@ -265,7 +323,7 @@ jobs:
               )
               write(p, c)
           print("✅ AppError.kt fixed (Network + Database)")
-          # ── 12. AuthRepository.kt ─────────────────────────────────────
+          # ── 14. AuthRepository.kt ─────────────────────────────────────
           write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
               package sa.mondial.world.core.network
@@ -290,7 +348,7 @@ jobs:
               }
               """))
           print("✅ AuthRepository.kt")
-          # ── 13. SettingsScreen R import + strings.xml ─────────────────
+          # ── 15. SettingsScreen R import + strings.xml ─────────────────
           p = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
           if os.path.exists(p):
               c = read(p)
@@ -313,7 +371,7 @@ jobs:
           </resources>
           """))
           print("✅ SettingsScreen R-import + strings.xml")
-          # ── 14. App resources ─────────────────────────────────────────
+          # ── 16. App resources ─────────────────────────────────────────
           write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -350,7 +408,7 @@ jobs:
               write(f'app/src/main/res/{d}/ic_launcher.xml', icon_xml)
               write(f'app/src/main/res/{d}/ic_launcher_round.xml', icon_xml)
           print("✅ App resources (themes, colors, icons)")
-          # ── 15. AndroidManifest.xml for every library module ──────────
+          # ── 17. AndroidManifest.xml for every library module ──────────
           lib_modules = [
               'core/common', 'core/di', 'core/network', 'core/database',
               'core/data', 'core/domain', 'core/ui', 'core/testing',
@@ -362,7 +420,7 @@ jobs:
               if not os.path.exists(mf):
                   write(mf, '<?xml version="1.0" encoding="utf-8"?>\n<manifest />\n')
           print(f"✅ AndroidManifest.xml for {len(lib_modules)} library modules")
-          # ── 16. compileOptions Java 17 ────────────────────────────────
+          # ── 18. compileOptions Java 17 ────────────────────────────────
           compile_block = (
               '\n        compileOptions {\n'
               '            sourceCompatibility = JavaVersion.VERSION_17\n'
@@ -377,7 +435,7 @@ jobs:
               nc = re.sub(r'(defaultConfig\s*\{[^}]*\})', r'\1' + compile_block, c, count=1)
               if nc != c: write(fp, nc)
           print("✅ compileOptions Java 17")
-          # ── 17. Gradle wrapper ────────────────────────────────────────
+          # ── 19. Gradle wrapper ────────────────────────────────────────
           GRADLE_VER = "8.9"
           run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp")
           run(f"unzip -q /tmp/gradle-{GRADLE_VER}-bin.zip -d /tmp/gradle-inst")
@@ -392,7 +450,7 @@ jobs:
           shutil.copy('/tmp/tmpwrapper/gradlew', 'gradlew')
           os.chmod('gradlew', 0o755)
           print("✅ Gradle wrapper")
-          # ── 18. Build Debug APK ───────────────────────────────────────
+          # ── 20. Build Debug APK ───────────────────────────────────────
           print("\n🔨 Building debug APK …")
           build_proc = subprocess.run(
               './gradlew :app:assembleDebug --no-daemon '
