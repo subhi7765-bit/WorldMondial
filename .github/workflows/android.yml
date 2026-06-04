@@ -216,7 +216,7 @@ jobs:
           }
           """))
           print("✅ core/domain/build.gradle.kts")
-          # ── 8. core/database/build.gradle.kts — FIX: add core:common ─
+          # ── 8. core/database/build.gradle.kts ────────────────────────
           write('core/database/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -244,7 +244,7 @@ jobs:
           }
           """))
           print("✅ core/database/build.gradle.kts")
-          # ── 9. core/network/build.gradle.kts — FIX: add domain+database
+          # ── 9. core/network/build.gradle.kts ─────────────────────────
           write('core/network/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -276,7 +276,7 @@ jobs:
           }
           """))
           print("✅ core/network/build.gradle.kts")
-          # ── 10. core/notifications/build.gradle.kts ───────────────────
+          # ── 10. core/notifications/build.gradle.kts — FIX: +domain ───
           write('core/notifications/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -298,9 +298,10 @@ jobs:
               implementation(libs.hilt.android)
               ksp(libs.hilt.compiler)
               implementation(project(":core:common"))
+              implementation(project(":core:domain"))
               implementation(project(":core:analytics"))
-              implementation("com.google.firebase:firebase-messaging:24.0.0")
-              implementation("com.google.firebase:firebase-analytics:22.0.0")
+              implementation("com.google.firebase:firebase-messaging:23.4.0")
+              implementation("com.google.firebase:firebase-analytics:21.6.2")
           }
           """))
           print("✅ core/notifications/build.gradle.kts")
@@ -316,7 +317,7 @@ jobs:
               '    implementation("androidx.activity:activity-compose:1.9.3")\n'
               '    implementation("androidx.compose.material:material-icons-extended:1.7.5")\n'
               '    implementation("com.google.android.material:material:1.12.0")\n'
-              '    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n'
+              '    implementation("com.google.firebase:firebase-crashlytics:19.2.1")\n'
           )
           if 'androidx.appcompat:appcompat' not in c:
               c = c[:c.rfind('\n}')] + '\n' + extra_deps + '\n}'
@@ -328,7 +329,7 @@ jobs:
               c = read(p)
               if 'firebase-crashlytics' not in c:
                   c = c[:c.rfind('\n}')] + \
-                      '\n    implementation("com.google.firebase:firebase-crashlytics:19.0.0")\n' \
+                      '\n    implementation("com.google.firebase:firebase-crashlytics:19.2.1")\n' \
                       '    implementation(libs.retrofit.core)\n}'
                   write(p, c)
           print("✅ core/data deps")
