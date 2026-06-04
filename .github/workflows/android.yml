@@ -37,13 +37,6 @@ jobs:
               d = os.path.dirname(p)
               if d: os.makedirs(d, exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
-          def patch(p, old, new):
-              if not os.path.exists(p): return False
-              c = read(p)
-              if old in c:
-                  write(p, c.replace(old, new, 1))
-                  return True
-              return False
           # ── 1. Extract all source files from project.txt ──────────────
           src = "project.txt"
           if not os.path.exists(src):
@@ -258,13 +251,20 @@ jobs:
               c = re.sub(r'[ \t]*implementation\("androidx\.compose\.material3:material3-pulltorefresh:[^"]+"\)\n?', '', c)
               write(p, c)
           print("✅ feature/matches pulltorefresh removed")
-          # ── 11. AppError.kt — override val message ────────────────────
-          ok = patch(
-              'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt',
-              'data class Network(val code: Int, val message: String?)',
-              'data class Network(val code: Int, override val message: String?)'
-          )
-          print(f"✅ AppError.kt — patch {'applied' if ok else 'skipped (already fixed)'}")
+          # ── 11. AppError.kt — override val message (Network + Database)
+          p = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
+          if os.path.exists(p):
+              c = read(p)
+              c = c.replace(
+                  'data class Network(val code: Int, val message: String?)',
+                  'data class Network(val code: Int, override val message: String?)'
+              )
+              c = c.replace(
+                  'data class Database(val message: String,',
+                  'data class Database(override val message: String,'
+              )
+              write(p, c)
+          print("✅ AppError.kt fixed (Network + Database)")
           # ── 12. AuthRepository.kt ─────────────────────────────────────
           write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
