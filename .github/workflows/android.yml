@@ -52,6 +52,124 @@ jobs:
               count += 1
           print(f"✅ Extracted {count} source files")
 
+          # ── 1b. إصلاحات تلقائية بعد الاستخراج ────────────────────────
+
+          # FIX-1: BaseRepository — protected → internal (Dagger لا يصل لـ protected fields)
+          base_repo_path = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
+          if os.path.exists(base_repo_path):
+              c = read(base_repo_path)
+              c = c.replace('protected lateinit var analyticsTracker', 'internal lateinit var analyticsTracker')
+              write(base_repo_path, c)
+              print("✅ FIX-1: BaseRepository.kt — protected → internal")
+
+          # FIX-2: DatabaseModule — fallbackToDestructiveMigration() deprecated in Room 2.7+
+          db_module = 'core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt'
+          if os.path.exists(db_module):
+              c = read(db_module)
+              c = c.replace(
+                  '.fallbackToDestructiveMigration()',
+                  '.fallbackToDestructiveMigration(dropAllTables = true)'
+              )
+              write(db_module, c)
+              print("✅ FIX-2: DatabaseModule.kt — fallbackToDestructiveMigration updated")
+
+          # FIX-3: AppError.kt — Database.message يحتاج override من Throwable
+          ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
+          if os.path.exists(ae):
+              c = read(ae)
+              c = re.sub(
+                  r'data class Network\(val code: Int, (?:override )?val message: String\?\)',
+                  'data class Network(val code: Int, override val message: String?)', c)
+              c = re.sub(
+                  r'data class Database\((?:override )?val message: String,',
+                  'data class Database(override val message: String,', c)
+              write(ae, c)
+              print("✅ FIX-3: AppError.kt — override message added")
+
+          # FIX-4: AuthRepository.kt — ترتيب imports خاطئ في الملف الأصلي
+          write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
+              textwrap.dedent("""\
+              package sa.mondial.world.core.network
+
+              import dagger.Binds
+              import dagger.Module
+              import dagger.hilt.InstallIn
+              import dagger.hilt.components.SingletonComponent
+              import javax.inject.Inject
+              import javax.inject.Singleton
+
+              interface AuthRepository {
+                  suspend fun refreshToken(): String?
+              }
+
+              @Singleton
+              class AuthRepositoryImpl @Inject constructor() : AuthRepository {
+                  override suspend fun refreshToken(): String? = "new_access_token_xyz987"
+              }
+
+              @Module
+              @InstallIn(SingletonComponent::class)
+              abstract class AuthModule {
+                  @Binds @Singleton
+                  abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+              }
+              """))
+          print("✅ FIX-4: AuthRepository.kt — imports reordered")
+
+          # FIX-5: SettingsScreen R import من app namespace إلى feature namespace
+          ss = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
+          if os.path.exists(ss):
+              c = read(ss)
+              c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
+              write(ss, c)
+
+          write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="settings_title">System Settings</string>
+              <string name="language">Language</string>
+              <string name="language_english">English</string>
+              <string name="language_arabic">Arabic</string>
+              <string name="theme">Theme</string>
+              <string name="theme_light">Light</string>
+              <string name="theme_dark">Dark</string>
+              <string name="theme_system">System Default</string>
+              <string name="notifications">Notifications</string>
+              <string name="live_alerts">Live Goal Alerts</string>
+              <string name="live_alerts_desc">Receive push alerts instantly on goals</string>
+          </resources>
+          """))
+          print("✅ FIX-5: SettingsScreen R import fixed")
+
+          # FIX-6: Feature modules — إضافة dependencies الناقصة إن لم تكن موجودة
+          for mod in ['feature/news', 'feature/matches', 'feature/settings']:
+              p = f'{mod}/build.gradle.kts'
+              if os.path.exists(p):
+                  c = read(p)
+                  if 'core:database' not in c:
+                      c = c.replace(
+                          'implementation(project(":core:common"))',
+                          'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))'
+                      )
+                      write(p, c)
+
+          # FIX-7: MatchDetailsScreen — إصلاح multiline strings
+          mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
+          if os.path.exists(mds_path):
+              c = read(mds_path).replace('\r\n', '\n')
+              c = c.replace(
+                  '"🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"',
+                  '"""🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"""'
+              )
+              c = c.replace(
+                  '"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"',
+                  '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""'
+              )
+              write(mds_path, c)
+              print("✅ FIX-7: MatchDetailsScreen multiline strings fixed")
+
+          print("✅ All automated hotfixes applied")
+
           # ── 2. gradle.properties ────────────────────────────────────────
           write('gradle.properties',
               'android.useAndroidX=true\n'
@@ -104,6 +222,7 @@ jobs:
           junit                = "4.13.2"
           mockk                = "1.13.10"
           turbine              = "1.1.0"
+          work                 = "2.9.1"
 
           [libraries]
           androidx-compose-ui                  = { group = "androidx.compose.ui",        name = "ui",                              version.ref = "compose"              }
@@ -129,6 +248,7 @@ jobs:
           coil-compose                         = { group = "io.coil-kt",                  name = "coil-compose",                    version.ref = "coil"                 }
           androidx-paging-runtime              = { group = "androidx.paging",             name = "paging-runtime",                  version.ref = "paging"               }
           androidx-paging-compose              = { group = "androidx.paging",             name = "paging-compose",                  version.ref = "paging"               }
+          androidx-work-runtime                = { group = "androidx.work",               name = "work-runtime-ktx",                version.ref = "work"                 }
           androidx-appcompat                   = { group = "androidx.appcompat",          name = "appcompat",                       version = "1.7.0"                    }
           junit                                = { group = "junit",                       name = "junit",                           version.ref = "junit"                }
           mockk                                = { group = "io.mockk",                    name = "mockk",                           version.ref = "mockk"                }
@@ -163,13 +283,18 @@ jobs:
               tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
                   compilerOptions {
                       jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                      freeCompilerArgs.addAll(
+                          "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                          "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                          "-opt-in=kotlinx.coroutines.FlowPreview"
+                      )
                   }
               }
           }
           """))
           print("✅ root build.gradle.kts")
 
-          # ── 6. Core modules build.gradle.kts ────────────────────────────
+          # ── 6. Core modules build.gradle.kts ───────────────────────────
 
           # core:common
           write('core/common/build.gradle.kts', textwrap.dedent("""\
@@ -219,7 +344,7 @@ jobs:
           }
           """))
 
-          # core:database — FIX: أضف kotlin.serialization (ضروري لـ RoomConverters + LineupPlayer)
+          # core:database
           write('core/database/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -282,7 +407,7 @@ jobs:
           }
           """))
 
-          # core:analytics — Firebase BOM
+          # core:analytics
           write('core/analytics/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -308,7 +433,7 @@ jobs:
           }
           """))
 
-          # core:data
+          # core:data — FIX: أضف timber + coroutines + firebase-crashlytics
           write('core/data/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -389,7 +514,7 @@ jobs:
           }
           """))
 
-          # core:notifications — FIX: أضف core:data (LocalizationManager)
+          # core:notifications
           write('core/notifications/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -411,7 +536,7 @@ jobs:
               implementation(libs.hilt.android)
               ksp(libs.hilt.compiler)
               implementation(libs.timber)
-              implementation("androidx.work:work-runtime-ktx:2.9.1")
+              implementation(libs.androidx.work.runtime)
               implementation(project(":core:common"))
               implementation(project(":core:domain"))
               implementation(project(":core:data"))
@@ -441,7 +566,7 @@ jobs:
           dependencies {
               implementation(libs.hilt.android)
               ksp(libs.hilt.compiler)
-              implementation("androidx.work:work-runtime-ktx:2.9.1")
+              implementation(libs.androidx.work.runtime)
               implementation(project(":core:common"))
               implementation(project(":core:data"))
               implementation(project(":core:network"))
@@ -572,7 +697,7 @@ jobs:
               ksp(libs.hilt.compiler)
               implementation(libs.timber)
               implementation(libs.androidx.appcompat)
-              implementation("androidx.work:work-runtime-ktx:2.9.1")
+              implementation(libs.androidx.work.runtime)
               implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
               implementation("com.google.firebase:firebase-messaging-ktx")
               implementation("com.google.firebase:firebase-crashlytics")
@@ -581,75 +706,7 @@ jobs:
           """))
           print("✅ app/build.gradle.kts")
 
-          # ── 9. إصلاح AppError.kt ────────────────────────────────────────
-          ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
-          if os.path.exists(ae):
-              c = read(ae)
-              c = re.sub(
-                  r'data class Network\(val code: Int, (?:override )?val message: String\?\)',
-                  'data class Network(val code: Int, override val message: String?)', c)
-              c = re.sub(
-                  r'data class Database\((?:override )?val message: String,',
-                  'data class Database(override val message: String,', c)
-              write(ae, c)
-              print("✅ AppError.kt fixed")
-
-          # ── 10. إصلاح AuthRepository.kt ────────────────────────────────
-          write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
-              textwrap.dedent("""\
-              package sa.mondial.world.core.network
-
-              import dagger.Binds
-              import dagger.Module
-              import dagger.hilt.InstallIn
-              import dagger.hilt.components.SingletonComponent
-              import javax.inject.Inject
-              import javax.inject.Singleton
-
-              interface AuthRepository {
-                  suspend fun refreshToken(): String?
-              }
-
-              @Singleton
-              class AuthRepositoryImpl @Inject constructor() : AuthRepository {
-                  override suspend fun refreshToken(): String? = "new_access_token_xyz987"
-              }
-
-              @Module
-              @InstallIn(SingletonComponent::class)
-              abstract class AuthModule {
-                  @Binds @Singleton
-                  abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
-              }
-              """))
-          print("✅ AuthRepository.kt fixed")
-
-          # ── 11. إصلاح SettingsScreen R import ──────────────────────────
-          ss = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
-          if os.path.exists(ss):
-              c = read(ss)
-              c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
-              write(ss, c)
-
-          write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="settings_title">System Settings</string>
-              <string name="language">Language</string>
-              <string name="language_english">English</string>
-              <string name="language_arabic">Arabic</string>
-              <string name="theme">Theme</string>
-              <string name="theme_light">Light</string>
-              <string name="theme_dark">Dark</string>
-              <string name="theme_system">System Default</string>
-              <string name="notifications">Notifications</string>
-              <string name="live_alerts">Live Goal Alerts</string>
-              <string name="live_alerts_desc">Receive push alerts instantly on goals</string>
-          </resources>
-          """))
-          print("✅ SettingsScreen fixed")
-
-          # ── 12. AndroidManifest.xml — إزالة package= (deprecated AGP 8+) ─
+          # ── 9. AndroidManifest.xml — إزالة package= (deprecated AGP 8+) ─
           main_mf = 'app/src/main/AndroidManifest.xml'
           if os.path.exists(main_mf):
               c = read(main_mf)
@@ -657,8 +714,7 @@ jobs:
               write(main_mf, c)
           print("✅ AndroidManifest.xml package= removed")
 
-          # ── 13. App resources (themes + icons) ─────────────────────────
-          # FIX: Theme.AppCompat يحتاج appcompat — استخدم MaterialComponents
+          # ── 10. App resources (themes + icons) ─────────────────────────
           write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -698,7 +754,7 @@ jobs:
               write(f'app/src/main/res/{d}/ic_launcher_round.xml', icon_xml)
           print("✅ App resources (themes + icons)")
 
-          # ── 14. AndroidManifest.xml لجميع مكتبات ───────────────────────
+          # ── 11. AndroidManifest.xml لجميع الـ library modules ──────────
           lib_modules = [
               'core/common', 'core/di', 'core/network', 'core/database',
               'core/data', 'core/domain', 'core/ui', 'core/testing',
@@ -711,7 +767,7 @@ jobs:
                   write(mf, '<?xml version="1.0" encoding="utf-8"?>\n<manifest />\n')
           print(f"✅ AndroidManifest.xml for {len(lib_modules)} modules")
 
-          # ── 15. Gradle Wrapper ──────────────────────────────────────────
+          # ── 12. Gradle Wrapper ──────────────────────────────────────────
           GRADLE_VER = "8.9"
           import subprocess as sp
           sp.run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp", shell=True, check=True)
@@ -729,7 +785,7 @@ jobs:
           os.chmod('gradlew', 0o755)
           print("✅ Gradle wrapper 8.9")
 
-          # ── 16. Build APK ───────────────────────────────────────────────
+          # ── 13. Build APK ───────────────────────────────────────────────
           print("\n🔨 Building debug APK...")
           result = subprocess.run(
               './gradlew :app:assembleDebug --no-daemon --stacktrace '
@@ -743,7 +799,7 @@ jobs:
           with open('/tmp/build_full.log', 'w') as f:
               f.write(output)
           lines = output.splitlines()
-          print('\n'.join(lines[-400:]))
+          print('\n'.join(lines[-500:]))
 
           if result.returncode != 0:
               print("\n════ KOTLIN ERRORS ════")
