@@ -20,7 +20,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build APK (with permission fix)
+      - name: Build APK (with Plugin Fix)
         run: |
           python3 << 'PYEOF'
           import os, re, sys, subprocess, shutil, stat, textwrap
@@ -31,38 +31,32 @@ jobs:
               if d: os.makedirs(d, exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
 
-          # 1. Extraction
+          # 1. Extract
           src = "project.txt"
           content = read(src)
           pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
           for m in pattern.finditer(content):
               write(m.group(1).strip().lstrip('/'), m.group(2).rstrip('\n'))
 
-          # 2. Hotfixes
-          for mod in ['feature/news', 'feature/matches', 'feature/settings']:
-              p = f'{mod}/build.gradle.kts'
-              if os.path.exists(p):
-                  c = read(p)
-                  if 'core:database' not in c:
-                      c = c.replace('implementation(project(":core:common"))', 
-                                    'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))')
-                      write(p, c)
-
+          # 2. Fix Plugin/Dependency Graph
+          app_gradle = 'app/build.gradle.kts'
+          if os.path.exists(app_gradle):
+              c = read(app_gradle)
+              # إضافة تعريف الـ google-services في الـ plugins إذا كان مفقوداً
+              if 'id("com.google.gms.google-services")' in c and 'alias(libs.plugins.google.services)' not in c:
+                  c = c.replace('id("com.google.gms.google-services")', 'alias(libs.plugins.google.services)')
+              write(app_gradle, c)
+          
           # Fix BaseRepository
           br_path = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
           if os.path.exists(br_path):
               write(br_path, read(br_path).replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker'))
 
-          # 3. FIX: Grant execute permission to gradlew
-          os.chmod('gradlew', stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRUSR | stat.S_IWUSR)
-
+          # 3. Build
+          os.chmod('gradlew', 0o755)
           print("\n🔨 Building debug APK …")
-          # Final build
-          build_proc = subprocess.run(['./gradlew', ':app:assembleDebug', '--no-daemon'], 
-                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-          print(build_proc.stdout)
-          if build_proc.returncode != 0:
-              sys.exit(build_proc.returncode)
+          # استخدام --stacktrace للحصول على تفاصيل أدق عند الخطأ
+          subprocess.run(['./gradlew', ':app:assembleDebug', '--no-daemon'], check=True)
           print("✅ SUCCESS")
           PYEOF
 
@@ -72,4 +66,3 @@ jobs:
         with:
           name: WorldMondial-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
