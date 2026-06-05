@@ -53,6 +53,23 @@ jobs:
               write(fp, body)
               count += 1
           print(f"✅ Extracted {count} source files")
+          
+          # ── 1b. Post-Extraction Automated Hotfixes ────────────────────
+          for p in ['feature/news/build.gradle.kts', 'feature/matches/build.gradle.kts']:
+              if os.path.exists(p):
+                  c = read(p)
+                  if 'core:database' not in c:
+                      c = c.replace('implementation(project(":core:common"))', 
+                                    'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))')
+                      write(p, c)
+          
+          mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
+          if os.path.exists(mds_path):
+              c = read(mds_path).replace('\r\n', '\n')
+              c = c.replace('"🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"', '"""🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"""')
+              c = c.replace('"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"', '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""')
+              write(mds_path, c)
+
           # ── 2. gradle.properties ──────────────────────────────────────
           write('gradle.properties',
               'android.useAndroidX=true\n'
@@ -275,6 +292,7 @@ jobs:
               implementation(libs.okhttp.logging)
               implementation(project(":core:common"))
               implementation(project(":core:domain"))
+              implementation(project(":project:database"))
               implementation(project(":core:database"))
           }
           """))
@@ -327,7 +345,6 @@ jobs:
               '    implementation("androidx.core:core-ktx:1.13.1")\n'
               '    implementation("androidx.activity:activity-compose:1.9.3")\n'
               '    implementation("androidx.compose.material:material-icons-extended:1.7.5")\n'
-              '    implementation("com.google.android.material:material:1.12.0")\n'
               '    implementation("com.google.android.material:material:1.12.0")\n'
               '    implementation("com.google.firebase:firebase-crashlytics:19.2.1")\n'
           )
