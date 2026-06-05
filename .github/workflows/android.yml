@@ -71,6 +71,12 @@ jobs:
               c = c.replace('"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"', '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""')
               write(mds_path, c)
 
+          base_repo_path = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
+          if os.path.exists(base_repo_path):
+              c = read(base_repo_path)
+              c = c.replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker')
+              write(base_repo_path, c)
+
           # ── 2. gradle.properties ──────────────────────────────────────
           write('gradle.properties',
               'android.useAndroidX=true\n'
