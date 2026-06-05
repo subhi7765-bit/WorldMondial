@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import sa.mondial.world.core.data.LocalizationManager
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,7 +51,7 @@ class AndroidAppNotificationManager @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             val isEnabled = localizationManager.notificationsEnabled.first()
             if (!isEnabled) {
-                timber.log.Timber.i("AndroidAppNotificationManager: Notifications disabled in localized Settings.")
+                Timber.i("AndroidAppNotificationManager: Notifications disabled in localized Settings.")
                 return@launch
             }
 
@@ -84,7 +85,7 @@ class AndroidAppNotificationManager @Inject constructor(
             try {
                 notificationManager.notify(matchId.hashCode(), builder.build())
             } catch (e: SecurityException) {
-                timber.log.Timber.e(e, "Missing POST_NOTIFICATIONS permission")
+                Timber.e(e, "Missing POST_NOTIFICATIONS permission")
             }
         }
     }
