@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
-    // id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -24,7 +24,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -49,8 +49,6 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
-    
-    // Core navigation wiring
     implementation(project(":feature:matches"))
     implementation(project(":feature:news"))
     implementation(project(":feature:settings"))
@@ -64,11 +62,9 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.timber)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
-    
-    // Firebase Cloud Messaging dependency for notification delivery
-    implementation("com.google.firebase:firebase-messaging:24.0.0")
-    implementation("com.google.firebase:firebase-crashlytics:19.0.0")
-    // Firebase Analytics and BOM dependencies
+
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-analytics-ktx")
 }
