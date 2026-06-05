@@ -223,6 +223,7 @@ jobs:
               alias(libs.plugins.kotlin.android)
               alias(libs.plugins.ksp)
               alias(libs.plugins.hilt)
+              alias(libs.plugins.kotlin.serialization)
           }
           android {
               namespace = "sa.mondial.world.core.database"
@@ -240,6 +241,7 @@ jobs:
               implementation(libs.room.runtime)
               implementation(libs.room.ktx)
               ksp(libs.room.compiler)
+              implementation(libs.kotlinx.serialization.json)
               implementation(project(":core:common"))
               implementation(project(":core:domain"))
           }
@@ -325,6 +327,7 @@ jobs:
               '    implementation("androidx.core:core-ktx:1.13.1")\n'
               '    implementation("androidx.activity:activity-compose:1.9.3")\n'
               '    implementation("androidx.compose.material:material-icons-extended:1.7.5")\n'
+              '    implementation("com.google.android.material:material:1.12.0")\n'
               '    implementation("com.google.android.material:material:1.12.0")\n'
               '    implementation("com.google.firebase:firebase-crashlytics:19.2.1")\n'
           )
