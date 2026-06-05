@@ -47,7 +47,28 @@ jobs:
           else:
               print("🚀 Using existing multi-module repository structure directly.")
 
-          # 2. Re-write libs.versions.toml with precise dot-notation mappings for Gradle 9+
+          # 2. Inject Correct matching google-services.json for Firebase
+          google_json = """{
+            "project_info":{
+              "project_number":"940789403342",
+              "project_id":"world-mondial",
+              "storage_bucket":"world-mondial.firebasestorage.app"
+            },
+            "client":[{
+              "client_info":{
+                "mobilesdk_app_id":"1:940789403342:android:088eaf9d6bdb4a3e9e4a9f",
+                "android_client_info":{"package_name":"sa.mondial.world"}
+              },
+              "oauth_client":[],
+              "api_key":[{"current_key":"AIzaSyD5QcgMhaHvVkvChUqEVlArCwAO9F84RF0"}],
+              "services":{"appinvite_service":{"other_platform_oauth_client":[]}}
+            }],
+            "configuration_version":"1"
+          }"""
+          write('app/google-services.json', textwrap.dedent(google_json))
+          print("✅ Synchronized google-services.json matching configuration.")
+
+          # 3. Re-write libs.versions.toml with precise dot-notation mappings for Gradle 9+
           libs_toml = """
           [versions]
           kotlin               = "2.0.21"
@@ -107,7 +128,7 @@ jobs:
           """
           write('gradle/libs.versions.toml', textwrap.dedent(libs_toml))
 
-          # 2. Write clean root build.gradle.kts
+          # 4. Write clean root build.gradle.kts
           root_gradle = """
           plugins {
               alias(libs.plugins.android.application)  apply false
@@ -129,7 +150,7 @@ jobs:
           """
           write('build.gradle.kts', textwrap.dedent(root_gradle))
 
-          # 3. Generate Core Module Infrastructure
+          # 5. Generate Core Module Infrastructure
           write('core/common/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.common"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.retrofit.core); implementation(libs.timber) }')
           write('core/domain/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.serialization) }\nandroid { namespace = "sa.mondial.world.core.domain"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.kotlinx.serialization.json) }')
           write('core/database/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt); alias(libs.plugins.kotlin.serialization) }\nandroid { namespace = "sa.mondial.world.core.database"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.room.runtime); implementation(libs.room.ktx); ksp(libs.room.compiler); implementation(libs.kotlinx.serialization.json); implementation(project(":core:common")); implementation(project(":core:domain")) }')
@@ -138,13 +159,13 @@ jobs:
           write('core/data/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.data"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.androidx.datastore.preferences); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:domain")); implementation(project(":core:database")); implementation(project(":core:network")); implementation(project(":core:analytics")) }')
           write('core/notifications/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.notifications"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.room.runtime); implementation(libs.room.ktx); implementation("androidx.work:work-runtime-ktx:2.9.1"); implementation("androidx.work:work-multiprocess:2.9.1"); implementation("com.google.firebase:firebase-messaging:24.0.0"); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:domain")); implementation(project(":core:database")); implementation(project(":core:data")); implementation(project(":core:analytics")) }')
           
-          # 4. Generate core/ui with compose plugin applied explicitly
+          # 6. Generate core/ui with compose plugin applied explicitly
           write('core/ui/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.compose) }\nandroid { namespace = "sa.mondial.world.core.ui"; compileSdk = 35; defaultConfig { minSdk = 26 }; buildFeatures { compose = true } }\ndependencies { implementation(libs.androidx.compose.ui); implementation(libs.androidx.compose.material3) }')
 
           for m, ns in [('core/sync', 'sa.mondial.world.core.sync'), ('core/testing', 'sa.mondial.world.core.testing'), ('core/di', 'sa.mondial.world.core.di')]:
               write(f'{m}/build.gradle.kts', f'plugins {{ alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android) }}\nandroid {{ namespace = "{ns}"; compileSdk = 35; defaultConfig {{ minSdk = 26 }} }}')
 
-          # 5. Clean Feature Modules Structure with mandatory kotlin-compose compiler plugin applied
+          # 7. Clean Feature Modules Structure with mandatory kotlin-compose compiler plugin applied
           feature_template = """
           plugins { 
               alias(libs.plugins.android.library)
@@ -175,7 +196,7 @@ jobs:
           for f_name in ['matches', 'news', 'settings']:
               write(f'feature/{f_name}/build.gradle.kts', textwrap.dedent(feature_template % f_name))
 
-          # 6. Perfect app module structure with applied Google Services
+          # 8. Perfect app module structure with applied Google Services
           app_gradle = """
           plugins {
               alias(libs.plugins.android.application)
@@ -231,7 +252,7 @@ jobs:
           """
           write('app/build.gradle.kts', textwrap.dedent(app_gradle))
 
-          # 7. Code Fixes
+          # 9. Code Fixes
           mds = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
           if os.path.exists(mds):
               write(mds, read(mds).replace('\r\n', '\n')
@@ -242,7 +263,7 @@ jobs:
           if os.path.exists(br):
               write(br, read(br).replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker'))
 
-          # 8. Set Permissions & Run
+          # 10. Set Permissions & Run
           os.chmod('gradlew', stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRUSR | stat.S_IWUSR)
           print("\n🔨 Executing Clean Build Sequence...")
           subprocess.run(['./gradlew', ':app:assembleDebug', '--no-daemon'], check=True)
