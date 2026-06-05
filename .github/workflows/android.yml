@@ -366,6 +366,7 @@ jobs:
                   c = c[:c.rfind('\n}')] + \
                       '\n    implementation("com.google.firebase:firebase-crashlytics:19.2.1")\n' \
                       '    implementation(libs.retrofit.core)\n' \
+                      '    implementation(libs.timber)\n' \
                       '    implementation(project(":core:analytics"))\n}'
                   write(p, c)
           print("✅ core/data deps")
