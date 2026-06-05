@@ -20,62 +20,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build APK (single Python script)
+      - name: Build APK (with permission fix)
         run: |
           python3 << 'PYEOF'
           import os, re, sys, subprocess, shutil, stat, textwrap
-          def run(cmd, check=True):
-              print(f"$ {cmd[:120]}")
-              r = subprocess.run(cmd, shell=True)
-              if check and r.returncode != 0:
-                  print(f"❌ Failed (exit {r.returncode})")
-                  sys.exit(r.returncode)
-              return r.returncode
           def read(p):
               with open(p, encoding='utf-8') as f: return f.read()
           def write(p, c):
               d = os.path.dirname(p)
               if d: os.makedirs(d, exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
-          
+
           # 1. Extraction
           src = "project.txt"
-          if not os.path.exists(src): sys.exit(1)
           content = read(src)
           pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
           for m in pattern.finditer(content):
               write(m.group(1).strip().lstrip('/'), m.group(2).rstrip('\n'))
 
-          # 2. Automated Hotfixes for dependencies and Syntax
+          # 2. Hotfixes
           for mod in ['feature/news', 'feature/matches', 'feature/settings']:
               p = f'{mod}/build.gradle.kts'
               if os.path.exists(p):
                   c = read(p)
-                  # Add missing Hilt compiler and core dependencies
-                  if 'ksp(libs.hilt.compiler)' not in c:
-                      c = c.replace('dependencies {', 
-                                    'dependencies {\n    ksp(libs.hilt.compiler)\n    implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))')
-                  write(p, c)
-          
-          # Fix syntax errors in MatchDetailsScreen
-          mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
-          if os.path.exists(mds_path):
-              c = read(mds_path).replace('\r\n', '\n')
-              c = c.replace('"🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"', '"""🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"""')
-              c = c.replace('"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"', '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""')
-              write(mds_path, c)
+                  if 'core:database' not in c:
+                      c = c.replace('implementation(project(":core:common"))', 
+                                    'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))')
+                      write(p, c)
 
-          # Fix BaseRepository protected field
+          # Fix BaseRepository
           br_path = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
           if os.path.exists(br_path):
-              c = read(br_path).replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker')
-              write(br_path, c)
+              write(br_path, read(br_path).replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker'))
 
-          # 3. Final Build Command
+          # 3. FIX: Grant execute permission to gradlew
+          os.chmod('gradlew', stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRUSR | stat.S_IWUSR)
+
           print("\n🔨 Building debug APK …")
-          build_proc = subprocess.run('./gradlew :app:assembleDebug --no-daemon', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+          # Final build
+          build_proc = subprocess.run(['./gradlew', ':app:assembleDebug', '--no-daemon'], 
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+          print(build_proc.stdout)
           if build_proc.returncode != 0:
-              print(build_proc.stdout)
               sys.exit(build_proc.returncode)
           print("✅ SUCCESS")
           PYEOF
