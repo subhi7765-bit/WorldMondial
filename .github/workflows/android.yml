@@ -20,7 +20,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Execute Enterprise Gradle Build Engine
+      - name: Build Debug APK
         run: |
           python3 << 'PYEOF'
           import os, re, sys, subprocess, shutil, stat, textwrap
@@ -35,20 +35,35 @@ jobs:
               if d: os.makedirs(d, exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
 
-          # 1. Safe Source Extraction
+          # ── 1. استخراج الملفات من project.txt ──────────────────────────
           src = "project.txt"
-          if os.path.exists(src) and len(read(src)) > 100:
-              print("📦 Extracting structure from project.txt master file...")
-              content = read(src)
-              pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
-              for m in pattern.finditer(content):
-                  write(m.group(1).strip().lstrip('/'), m.group(2).rstrip('\n'))
-              print("✅ Extraction complete.")
-          else:
-              print("🚀 Using existing multi-module repository structure directly.")
+          if not os.path.exists(src):
+              print("❌ project.txt not found!"); sys.exit(1)
+          content = read(src)
+          pattern = re.compile(
+              r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)',
+              re.DOTALL
+          )
+          count = 0
+          for m in pattern.finditer(content):
+              fp   = m.group(1).strip().lstrip('/')
+              body = m.group(2).rstrip('\n')
+              write(fp, body)
+              count += 1
+          print(f"✅ Extracted {count} source files")
 
-          # 2. google-services.json
-          google_json = """{
+          # ── 2. gradle.properties ────────────────────────────────────────
+          write('gradle.properties',
+              'android.useAndroidX=true\n'
+              'android.enableJetifier=true\n'
+              'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n'
+              'org.gradle.daemon=false\n'
+              'org.gradle.parallel=false\n'
+              'kotlin.jvm.target.validation.mode=WARNING\n')
+          print("✅ gradle.properties")
+
+          # ── 3. google-services.json ─────────────────────────────────────
+          write('app/google-services.json', """{
             "project_info":{
               "project_number":"940789403342",
               "project_id":"world-mondial",
@@ -64,12 +79,11 @@ jobs:
               "services":{"appinvite_service":{"other_platform_oauth_client":[]}}
             }],
             "configuration_version":"1"
-          }"""
-          write('app/google-services.json', textwrap.dedent(google_json))
+          }""")
           print("✅ google-services.json")
 
-          # 3. libs.versions.toml
-          libs_toml = """
+          # ── 4. libs.versions.toml ───────────────────────────────────────
+          write('gradle/libs.versions.toml', textwrap.dedent("""\
           [versions]
           kotlin               = "2.0.21"
           compose              = "1.7.5"
@@ -87,7 +101,6 @@ jobs:
           lifecycle            = "2.8.7"
           datastore            = "1.1.1"
           coil                 = "2.6.0"
-          work                 = "2.9.1"
           junit                = "4.13.2"
           mockk                = "1.13.10"
           turbine              = "1.1.0"
@@ -116,11 +129,11 @@ jobs:
           coil-compose                         = { group = "io.coil-kt",                  name = "coil-compose",                    version.ref = "coil"                 }
           androidx-paging-runtime              = { group = "androidx.paging",             name = "paging-runtime",                  version.ref = "paging"               }
           androidx-paging-compose              = { group = "androidx.paging",             name = "paging-compose",                  version.ref = "paging"               }
-          material-icons-extended              = { group = "androidx.compose.material",   name = "material-icons-extended",         version.ref = "compose"              }
           androidx-appcompat                   = { group = "androidx.appcompat",          name = "appcompat",                       version = "1.7.0"                    }
           junit                                = { group = "junit",                       name = "junit",                           version.ref = "junit"                }
-          mockk                                = { group = "io.mockk",                   name = "mockk",                           version.ref = "mockk"                }
+          mockk                                = { group = "io.mockk",                    name = "mockk",                           version.ref = "mockk"                }
           turbine                              = { group = "app.cash.turbine",            name = "turbine",                         version.ref = "turbine"              }
+          androidx-test-rules                  = { group = "androidx.test",               name = "rules",                           version = "1.6.1"                    }
 
           [plugins]
           google-services      = { id = "com.google.gms.google-services",            version = "4.4.2"                   }
@@ -131,12 +144,11 @@ jobs:
           kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"              }
           ksp                  = { id = "com.google.devtools.ksp",                   version.ref = "ksp"                 }
           hilt                 = { id = "com.google.dagger.hilt.android",            version.ref = "hilt"                }
-          """
-          write('gradle/libs.versions.toml', textwrap.dedent(libs_toml))
+          """))
           print("✅ libs.versions.toml")
 
-          # 4. Root build.gradle.kts
-          root_gradle = """
+          # ── 5. Root build.gradle.kts ────────────────────────────────────
+          write('build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.application)  apply false
               alias(libs.plugins.android.library)      apply false
@@ -154,99 +166,213 @@ jobs:
                   }
               }
           }
-          """
-          write('build.gradle.kts', textwrap.dedent(root_gradle))
+          """))
           print("✅ root build.gradle.kts")
 
-          # 5. Core modules
+          # ── 6. Core modules build.gradle.kts ────────────────────────────
+
+          # core:common
           write('core/common/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.common"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.retrofit.core); implementation(libs.timber) }
-          """))
-
-          write('core/domain/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.serialization) }
-          android { namespace = "sa.mondial.world.core.domain"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.kotlinx.serialization.json) }
-          """))
-
-          # core:database needs core:domain (MatchEntity/NewsEntity import domain models)
-          write('core/database/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt); alias(libs.plugins.kotlin.serialization) }
-          android { namespace = "sa.mondial.world.core.database"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.room.runtime); implementation(libs.room.ktx); ksp(libs.room.compiler); implementation(libs.kotlinx.serialization.json); implementation(project(":core:common")); implementation(project(":core:domain")) }
-          """))
-
-          # core:network only needs core:common (no domain/database)
-          write('core/network/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.serialization); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.network"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.retrofit.core); implementation(libs.retrofit.kotlinx.serialization); implementation(libs.kotlinx.serialization.json); implementation(libs.okhttp.logging); implementation(project(":core:common")) }
-          """))
-
-          # core:analytics uses Firebase BOM (NOT hardcoded version)
-          write('core/analytics/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.analytics"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.timber); implementation(platform("com.google.firebase:firebase-bom:33.10.0")); implementation("com.google.firebase:firebase-analytics-ktx") }
-          """))
-
-          # core:data needs analytics (AnalyticsTracker) + crashlytics (BaseRepository) + core:di
-          write('core/data/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.data"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.androidx.datastore.preferences); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:di")); implementation(project(":core:domain")); implementation(project(":core:database")); implementation(project(":core:network")); implementation(project(":core:analytics")); implementation(platform("com.google.firebase:firebase-bom:33.10.0")); implementation("com.google.firebase:firebase-crashlytics") }
-          """))
-
-          # core:notifications needs core:data (LocalizationManager) + core:analytics (AnalyticsTracker)
-          write('core/notifications/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.notifications"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation("androidx.work:work-runtime-ktx:2.9.1"); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:data")); implementation(project(":core:analytics")); implementation(platform("com.google.firebase:firebase-bom:33.10.0")); implementation("com.google.firebase:firebase-messaging-ktx") }
-          """))
-          print("✅ core modules")
-
-          # 6. core/ui
-          write('core/ui/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.compose) }
-          android { namespace = "sa.mondial.world.core.ui"; compileSdk = 35; defaultConfig { minSdk = 26 }; buildFeatures { compose = true }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.androidx.compose.ui); implementation(libs.androidx.compose.material3) }
-          """))
-
-          # core/di needs hilt (ConnectivityModule uses @Binds/@Module)
-          write('core/di/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.di"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(project(":core:common")) }
-          """))
-
-          # core/sync needs work + network + feature:news (MatchSyncWorker)
-          write('core/sync/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
-          android { namespace = "sa.mondial.world.core.sync"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation("androidx.work:work-runtime-ktx:2.9.1"); implementation(project(":core:common")); implementation(project(":core:data")); implementation(project(":core:network")); implementation(project(":core:domain")) }
-          """))
-
-          # core/testing
-          write('core/testing/build.gradle.kts', textwrap.dedent("""\
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android) }
-          android { namespace = "sa.mondial.world.core.testing"; compileSdk = 35; defaultConfig { minSdk = 26 }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 } }
-          dependencies { implementation(libs.junit); implementation(libs.mockk); implementation(libs.turbine); implementation(libs.kotlinx.coroutines.test) }
-          """))
-          print("✅ support modules (di, sync, testing, ui)")
-
-          # 7. Feature modules
-          feature_template = """
           plugins {
               alias(libs.plugins.android.library)
               alias(libs.plugins.kotlin.android)
-              alias(libs.plugins.kotlin.compose)
               alias(libs.plugins.ksp)
               alias(libs.plugins.hilt)
           }
           android {
-              namespace = "sa.mondial.world.feature.%s"
+              namespace = "sa.mondial.world.core.common"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.retrofit.core)
+              implementation(libs.timber)
+          }
+          """))
+
+          # core:domain
+          write('core/domain/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.serialization)
+          }
+          android {
+              namespace = "sa.mondial.world.core.domain"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.kotlinx.serialization.json)
+          }
+          """))
+
+          # core:database — FIX: أضف kotlin.serialization (ضروري لـ RoomConverters + LineupPlayer)
+          write('core/database/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+              alias(libs.plugins.kotlin.serialization)
+          }
+          android {
+              namespace = "sa.mondial.world.core.database"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.room.runtime)
+              implementation(libs.room.ktx)
+              ksp(libs.room.compiler)
+              implementation(libs.kotlinx.serialization.json)
+              implementation(project(":core:common"))
+              implementation(project(":core:domain"))
+          }
+          """))
+
+          # core:network
+          write('core/network/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.serialization)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.network"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.retrofit.core)
+              implementation(libs.retrofit.kotlinx.serialization)
+              implementation(libs.kotlinx.serialization.json)
+              implementation(libs.okhttp.logging)
+              implementation(project(":core:common"))
+          }
+          """))
+
+          # core:analytics — Firebase BOM
+          write('core/analytics/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.analytics"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.timber)
+              implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+              implementation("com.google.firebase:firebase-analytics-ktx")
+          }
+          """))
+
+          # core:data
+          write('core/data/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.data"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.androidx.datastore.preferences)
+              implementation(libs.timber)
+              implementation(project(":core:common"))
+              implementation(project(":core:di"))
+              implementation(project(":core:domain"))
+              implementation(project(":core:database"))
+              implementation(project(":core:network"))
+              implementation(project(":core:analytics"))
+              implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+              implementation("com.google.firebase:firebase-crashlytics")
+          }
+          """))
+
+          # core:di
+          write('core/di/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.di"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(project(":core:common"))
+          }
+          """))
+
+          # core:ui
+          write('core/ui/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.compose)
+          }
+          android {
+              namespace = "sa.mondial.world.core.ui"
               compileSdk = 35
               defaultConfig { minSdk = 26 }
               buildFeatures { compose = true }
@@ -256,6 +382,115 @@ jobs:
               }
           }
           dependencies {
+              implementation(libs.androidx.compose.ui)
+              implementation(libs.androidx.compose.material3)
+          }
+          """))
+
+          # core:notifications — FIX: أضف core:data (LocalizationManager)
+          write('core/notifications/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.notifications"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation(libs.timber)
+              implementation("androidx.work:work-runtime-ktx:2.9.1")
+              implementation(project(":core:common"))
+              implementation(project(":core:domain"))
+              implementation(project(":core:data"))
+              implementation(project(":core:analytics"))
+              implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+              implementation("com.google.firebase:firebase-messaging-ktx")
+          }
+          """))
+
+          # core:sync
+          write('core/sync/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
+          android {
+              namespace = "sa.mondial.world.core.sync"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.hilt.android)
+              ksp(libs.hilt.compiler)
+              implementation("androidx.work:work-runtime-ktx:2.9.1")
+              implementation(project(":core:common"))
+              implementation(project(":core:data"))
+              implementation(project(":core:network"))
+              implementation(project(":core:domain"))
+          }
+          """))
+
+          # core:testing
+          write('core/testing/build.gradle.kts', textwrap.dedent("""\
+          plugins {
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+          }
+          android {
+              namespace = "sa.mondial.world.core.testing"
+              compileSdk = 35
+              defaultConfig { minSdk = 26 }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          dependencies {
+              implementation(libs.junit)
+              implementation(libs.mockk)
+              implementation(libs.turbine)
+              implementation(libs.kotlinx.coroutines.test)
+          }
+          """))
+          print("✅ core modules build.gradle.kts")
+
+          # ── 7. Feature modules ──────────────────────────────────────────
+          feature_gradle = """\
+          plugins {{
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.compose)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }}
+          android {{
+              namespace = "sa.mondial.world.feature.{name}"
+              compileSdk = 35
+              defaultConfig {{ minSdk = 26 }}
+              buildFeatures {{ compose = true }}
+              compileOptions {{
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }}
+          }}
+          dependencies {{
               implementation(libs.androidx.compose.ui)
               implementation(libs.androidx.compose.material3)
               implementation(libs.androidx.navigation.compose)
@@ -275,14 +510,14 @@ jobs:
               implementation(project(":core:data"))
               implementation(project(":core:analytics"))
               implementation(project(":core:ui"))
-          }
+          }}
           """
-          for f_name in ['matches', 'news', 'settings']:
-              write(f'feature/{f_name}/build.gradle.kts', textwrap.dedent(feature_template % f_name))
-          print("✅ feature modules")
+          for fname in ['matches', 'news', 'settings']:
+              write(f'feature/{fname}/build.gradle.kts', feature_gradle.format(name=fname))
+          print("✅ feature modules build.gradle.kts")
 
-          # 8. app/build.gradle.kts  — FIX: removed :project:database typo, Firebase uses BOM
-          app_gradle = """
+          # ── 8. app/build.gradle.kts ─────────────────────────────────────
+          write('app/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.application)
               alias(libs.plugins.kotlin.android)
@@ -301,11 +536,18 @@ jobs:
                   targetSdk = 35
                   versionCode = 100
                   versionName = "1.0.0"
-                  testInstrumentationRunner = "sa.mondial.world.core.testing.CustomTestRunner"
               }
-              buildTypes { release { isMinifyEnabled = false } }
-              compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
-              buildFeatures { compose = true; buildConfig = true }
+              buildTypes {
+                  release { isMinifyEnabled = false }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              buildFeatures {
+                  compose = true
+                  buildConfig = true
+              }
           }
           dependencies {
               implementation(project(":core:common"))
@@ -327,18 +569,30 @@ jobs:
               implementation(libs.hilt.android)
               ksp(libs.hilt.compiler)
               implementation(libs.timber)
+              implementation(libs.androidx.appcompat)
               implementation("androidx.work:work-runtime-ktx:2.9.1")
               implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
               implementation("com.google.firebase:firebase-messaging-ktx")
               implementation("com.google.firebase:firebase-crashlytics")
               implementation("com.google.firebase:firebase-analytics-ktx")
           }
-          """
-          write('app/build.gradle.kts', textwrap.dedent(app_gradle))
+          """))
           print("✅ app/build.gradle.kts")
 
-          # 9. Code Fixes
-          # Fix AuthRepository.kt: imports placed after interface (invalid Kotlin)
+          # ── 9. إصلاح AppError.kt ────────────────────────────────────────
+          ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
+          if os.path.exists(ae):
+              c = read(ae)
+              c = re.sub(
+                  r'data class Network\(val code: Int, (?:override )?val message: String\?\)',
+                  'data class Network(val code: Int, override val message: String?)', c)
+              c = re.sub(
+                  r'data class Database\((?:override )?val message: String,',
+                  'data class Database(override val message: String,', c)
+              write(ae, c)
+              print("✅ AppError.kt fixed")
+
+          # ── 10. إصلاح AuthRepository.kt ────────────────────────────────
           write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
               package sa.mondial.world.core.network
@@ -366,61 +620,156 @@ jobs:
                   abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
               }
               """))
+          print("✅ AuthRepository.kt fixed")
 
-          # Fix AppError.kt: Database.message missing override keyword
-          ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
-          if os.path.exists(ae):
-              c = read(ae)
-              c = re.sub(r'data class Network\(val code: Int, (?:override )?val message: String\?\)',
-                         'data class Network(val code: Int, override val message: String?)', c)
-              c = re.sub(r'data class Database\((?:override )?val message: String,',
-                         'data class Database(override val message: String,', c)
-              write(ae, c)
+          # ── 11. إصلاح SettingsScreen R import ──────────────────────────
+          ss = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
+          if os.path.exists(ss):
+              c = read(ss)
+              c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
+              write(ss, c)
 
-          # Fix MatchDetailsScreen.kt: raw string in double-quoted string (invalid Kotlin)
-          mds = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
-          if os.path.exists(mds):
-              write(mds, read(mds).replace('\r\n', '\n')
-                    .replace('"🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"',
-                             '"""🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"""')
-                    .replace('"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"',
-                             '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""'))
+          write('feature/settings/src/main/res/values/strings.xml', textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="settings_title">System Settings</string>
+              <string name="language">Language</string>
+              <string name="language_english">English</string>
+              <string name="language_arabic">Arabic</string>
+              <string name="theme">Theme</string>
+              <string name="theme_light">Light</string>
+              <string name="theme_dark">Dark</string>
+              <string name="theme_system">System Default</string>
+              <string name="notifications">Notifications</string>
+              <string name="live_alerts">Live Goal Alerts</string>
+              <string name="live_alerts_desc">Receive push alerts instantly on goals</string>
+          </resources>
+          """))
+          print("✅ SettingsScreen fixed")
 
-          # Fix BaseRepository.kt: protected lateinit visibility issue
-          br = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
-          if os.path.exists(br):
-              write(br, read(br).replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker'))
+          # ── 12. AndroidManifest.xml — إزالة package= (deprecated AGP 8+) ─
+          main_mf = 'app/src/main/AndroidManifest.xml'
+          if os.path.exists(main_mf):
+              c = read(main_mf)
+              c = re.sub(r'\s*package="[^"]*"', '', c)
+              write(main_mf, c)
+          print("✅ AndroidManifest.xml package= removed")
 
-          # Ensure AndroidManifest.xml exists for all library modules
-          for mod in ['core/common','core/di','core/network','core/database','core/data',
-                      'core/domain','core/ui','core/testing','core/notifications',
-                      'core/analytics','core/sync','feature/matches','feature/news','feature/settings']:
+          # ── 13. App resources (themes + icons) ─────────────────────────
+          # FIX: Theme.AppCompat يحتاج appcompat — استخدم MaterialComponents
+          write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.WorldMondial" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+              <style name="Theme.WorldMondial.NoActionBar" parent="Theme.WorldMondial" />
+          </resources>
+          """))
+
+          write('app/src/main/res/values/colors.xml', textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#1565C0</color>
+              <color name="black">#FF000000</color>
+              <color name="white">#FFFFFFFF</color>
+          </resources>
+          """))
+
+          write('app/src/main/res/drawable/ic_launcher_foreground.xml', textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#FFFFFF"
+                  android:pathData="M54,22 L70,54 L86,54 L73,66 L78,86 L54,74 L30,86 L35,66 L22,54 L38,54 Z"/>
+          </vector>
+          """))
+
+          icon_xml = textwrap.dedent("""\
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background"/>
+              <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+          </adaptive-icon>
+          """)
+          for d in ['mipmap-anydpi-v26', 'mipmap-anydpi']:
+              write(f'app/src/main/res/{d}/ic_launcher.xml', icon_xml)
+              write(f'app/src/main/res/{d}/ic_launcher_round.xml', icon_xml)
+          print("✅ App resources (themes + icons)")
+
+          # ── 14. AndroidManifest.xml لجميع مكتبات ───────────────────────
+          lib_modules = [
+              'core/common', 'core/di', 'core/network', 'core/database',
+              'core/data', 'core/domain', 'core/ui', 'core/testing',
+              'core/notifications', 'core/analytics', 'core/sync',
+              'feature/matches', 'feature/news', 'feature/settings',
+          ]
+          for mod in lib_modules:
               mf = f'{mod}/src/main/AndroidManifest.xml'
               if not os.path.exists(mf):
                   write(mf, '<?xml version="1.0" encoding="utf-8"?>\n<manifest />\n')
-          print("✅ Code fixes + manifests")
+          print(f"✅ AndroidManifest.xml for {len(lib_modules)} modules")
 
-          # 10. Set Permissions & Run
-          os.chmod('gradlew', stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRUSR | stat.S_IWUSR)
-          print("\n🔨 Executing Clean Build Sequence...")
-          result = subprocess.run(
-              ['./gradlew', ':app:assembleDebug', '--no-daemon',
-               '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g'],
-              capture_output=True, text=True
+          # ── 15. Gradle Wrapper ──────────────────────────────────────────
+          GRADLE_VER = "8.9"
+          import subprocess as sp
+          sp.run(f"wget -q https://services.gradle.org/distributions/gradle-{GRADLE_VER}-bin.zip -P /tmp", shell=True, check=True)
+          sp.run(f"unzip -q /tmp/gradle-{GRADLE_VER}-bin.zip -d /tmp/gradle-inst", shell=True, check=True)
+          os.makedirs('/tmp/tmpwrapper', exist_ok=True)
+          write('/tmp/tmpwrapper/settings.gradle', 'rootProject.name = "tmp"')
+          sp.run(
+              f"/tmp/gradle-inst/gradle-{GRADLE_VER}/bin/gradle wrapper "
+              f"--gradle-version {GRADLE_VER} --distribution-type bin "
+              f"--project-dir /tmp/tmpwrapper",
+              shell=True, check=True
           )
-          print(result.stdout[-8000:] if len(result.stdout) > 8000 else result.stdout)
+          shutil.copytree('/tmp/tmpwrapper/gradle', 'gradle', dirs_exist_ok=True)
+          shutil.copy('/tmp/tmpwrapper/gradlew', 'gradlew')
+          os.chmod('gradlew', 0o755)
+          print("✅ Gradle wrapper 8.9")
+
+          # ── 16. Build APK ───────────────────────────────────────────────
+          print("\n🔨 Building debug APK...")
+          result = subprocess.run(
+              './gradlew :app:assembleDebug --no-daemon --stacktrace '
+              '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"',
+              shell=True,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT,
+              text=True
+          )
+          output = result.stdout
+          with open('/tmp/build_full.log', 'w') as f:
+              f.write(output)
+          lines = output.splitlines()
+          print('\n'.join(lines[-400:]))
+
           if result.returncode != 0:
-              print("── ERRORS ──")
-              for line in result.stdout.splitlines() + result.stderr.splitlines():
-                  if any(x in line for x in ['e: ','FAILED','Unresolved','Cannot access','not found','Caused by:']):
+              print("\n════ KOTLIN ERRORS ════")
+              for line in lines:
+                  if line.startswith('e: ') or 'error:' in line.lower():
+                      print(line)
+              print("\n════ TASK FAILURES ════")
+              for line in lines:
+                  if any(x in line for x in ['FAILED','Unresolved','Cannot access','not found','Caused by:']):
                       print(line)
               sys.exit(result.returncode)
-          print("✅ SUCCESS")
+
+          apk = None
+          for root, _, files in os.walk('app/build/outputs/apk/debug'):
+              for f in files:
+                  if f.endswith('.apk'):
+                      apk = os.path.join(root, f); break
+          if apk:
+              size = os.path.getsize(apk) // 1_048_576
+              print(f"\n✅ SUCCESS — APK: {apk} ({size} MB)")
+          else:
+              print("❌ APK not found!"); sys.exit(1)
           PYEOF
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
           name: WorldMondial-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
