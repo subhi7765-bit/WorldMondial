@@ -35,7 +35,7 @@ jobs:
               if d: os.makedirs(d, exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
 
-          # 1. Check if extraction from project.txt is required
+          # 1. Safe Source Extraction
           src = "project.txt"
           if os.path.exists(src) and len(read(src)) > 100:
               print("📦 Extracting structure from project.txt master file...")
@@ -107,7 +107,7 @@ jobs:
           """
           write('gradle/libs.versions.toml', textwrap.dedent(libs_toml))
 
-          # 3. Write clean root build.gradle.kts
+          # 2. Write clean root build.gradle.kts
           root_gradle = """
           plugins {
               alias(libs.plugins.android.application)  apply false
@@ -129,7 +129,7 @@ jobs:
           """
           write('build.gradle.kts', textwrap.dedent(root_gradle))
 
-          # 4. Generate Core Module Infrastructure
+          # 3. Generate Core Module Infrastructure
           write('core/common/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.common"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.retrofit.core); implementation(libs.timber) }')
           write('core/domain/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.serialization) }\nandroid { namespace = "sa.mondial.world.core.domain"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.kotlinx.serialization.json) }')
           write('core/database/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt); alias(libs.plugins.kotlin.serialization) }\nandroid { namespace = "sa.mondial.world.core.database"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.room.runtime); implementation(libs.room.ktx); ksp(libs.room.compiler); implementation(libs.kotlinx.serialization.json); implementation(project(":core:common")); implementation(project(":core:domain")) }')
@@ -138,12 +138,21 @@ jobs:
           write('core/data/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.data"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.androidx.datastore.preferences); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:domain")); implementation(project(":core:database")); implementation(project(":core:network")); implementation(project(":core:analytics")) }')
           write('core/notifications/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }\nandroid { namespace = "sa.mondial.world.core.notifications"; compileSdk = 35; defaultConfig { minSdk = 26 } }\ndependencies { implementation(libs.kotlinx.coroutines.core); implementation(libs.hilt.android); ksp(libs.hilt.compiler); implementation(libs.room.runtime); implementation(libs.room.ktx); implementation("androidx.work:work-runtime-ktx:2.9.1"); implementation("androidx.work:work-multiprocess:2.9.1"); implementation("com.google.firebase:firebase-messaging:24.0.0"); implementation(libs.timber); implementation(project(":core:common")); implementation(project(":core:domain")); implementation(project(":core:database")); implementation(project(":core:data")); implementation(project(":core:analytics")) }')
           
-          for m, ns in [('core/ui', 'sa.mondial.world.core.ui'), ('core/sync', 'sa.mondial.world.core.sync'), ('core/testing', 'sa.mondial.world.core.testing'), ('core/di', 'sa.mondial.world.core.di')]:
+          # 4. Generate core/ui with compose plugin applied explicitly
+          write('core/ui/build.gradle.kts', 'plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.kotlin.compose) }\nandroid { namespace = "sa.mondial.world.core.ui"; compileSdk = 35; defaultConfig { minSdk = 26 }; buildFeatures { compose = true } }\ndependencies { implementation(libs.androidx.compose.ui); implementation(libs.androidx.compose.material3) }')
+
+          for m, ns in [('core/sync', 'sa.mondial.world.core.sync'), ('core/testing', 'sa.mondial.world.core.testing'), ('core/di', 'sa.mondial.world.core.di')]:
               write(f'{m}/build.gradle.kts', f'plugins {{ alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android) }}\nandroid {{ namespace = "{ns}"; compileSdk = 35; defaultConfig {{ minSdk = 26 }} }}')
 
-          # 5. Clean Feature Modules Structure with correct dot-notation accessors
+          # 5. Clean Feature Modules Structure with mandatory kotlin-compose compiler plugin applied
           feature_template = """
-          plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android); alias(libs.plugins.ksp); alias(libs.plugins.hilt) }
+          plugins { 
+              alias(libs.plugins.android.library)
+              alias(libs.plugins.kotlin.android)
+              alias(libs.plugins.kotlin.compose)
+              alias(libs.plugins.ksp)
+              alias(libs.plugins.hilt)
+          }
           android { namespace = "sa.mondial.world.feature.%s"; compileSdk = 35; defaultConfig { minSdk = 26 }; buildFeatures { compose = true } }
           dependencies {
               implementation(libs.androidx.compose.ui)
