@@ -660,7 +660,7 @@ jobs:
           write('app/src/main/res/values/themes.xml', textwrap.dedent("""\
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="Theme.WorldMondial" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+              <style name="Theme.WorldMondial" parent="Theme.AppCompat.DayNight.NoActionBar" />
               <style name="Theme.WorldMondial.NoActionBar" parent="Theme.WorldMondial" />
           </resources>
           """))
