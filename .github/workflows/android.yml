@@ -20,63 +20,43 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build APK (with Plugin Fix)
+      - name: Build APK (with libs.versions.toml Fix)
         run: |
           python3 << 'PYEOF'
           import os, re, sys, subprocess, shutil, stat, textwrap
-          def read(p):
-              with open(p, encoding='utf-8') as f: return f.read()
+          def read(p): return open(p, encoding='utf-8').read() if os.path.exists(p) else ""
           def write(p, c):
-              d = os.path.dirname(p)
-              if d: os.makedirs(d, exist_ok=True)
+              os.makedirs(os.path.dirname(p), exist_ok=True)
               with open(p, 'w', encoding='utf-8') as f: f.write(c)
 
-          # 1. Extract files
-          src = "project.txt"
-          content = read(src)
+          # 1. Extract
+          content = read("project.txt")
           pattern = re.compile(r'-{3,}\s*\nFILE TARGET:\s*(/[^\n]+)\n-{3,}\s*\n(.*?)(?=\n-{3,}\s*\nFILE TARGET:|\Z)', re.DOTALL)
           for m in pattern.finditer(content):
               write(m.group(1).strip().lstrip('/'), m.group(2).rstrip('\n'))
 
-          # 2. Force Rewrite libs.versions.toml to include the correct Google Services Plugin
+          # 2. Correct libs.versions.toml (The Root Cause)
           libs_toml = """
           [versions]
           kotlin = "2.0.21"
           androidGradlePlugin = "8.7.2"
           ksp = "2.0.21-1.0.26"
           hilt = "2.55"
-          room = "2.7.1"
           googleServices = "4.4.2"
           
           [plugins]
           android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
           android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
           kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+          kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
           ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
           hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
           google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
           """
           write('gradle/libs.versions.toml', textwrap.dedent(libs_toml))
 
-          # 3. Hotfixes for gradle files
-          for mod in ['feature/news', 'feature/matches', 'feature/settings']:
-              p = f'{mod}/build.gradle.kts'
-              if os.path.exists(p):
-                  c = read(p)
-                  if 'core:database' not in c:
-                      c = c.replace('implementation(project(":core:common"))', 
-                                    'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))')
-                      write(p, c)
-          
-          # Fix MatchDetailsScreen syntax
-          mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
-          if os.path.exists(mds_path):
-              c = read(mds_path).replace('\r\n', '\n')
-              c = c.replace('"🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"', '"""🏆 $homeTeam × $awayTeam\n⚽ النتيجة: $homeScore-$awayScore\n📅 التاريخ: $date\n🏟️ الملعب: $venue"""')
-              c = c.replace('"🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"', '"""🏆 $homeTeam vs $awayTeam\n⚽ Score: $homeScore-$awayScore\n📅 Date: $date\n🏟️ Venue: $venue"""')
-              write(mds_path, c)
-
-          # 4. Build
+          # 3. Build
           os.chmod('gradlew', 0o755)
           print("\n🔨 Building debug APK …")
           subprocess.run(['./gradlew', ':app:assembleDebug', '--no-daemon'], check=True)
