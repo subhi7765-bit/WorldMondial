@@ -13,10 +13,18 @@ import sa.mondial.world.core.database.dao.MatchRemoteKeysDao
 import sa.mondial.world.core.database.dao.NewsDao
 import javax.inject.Singleton
 
+/**
+ * Dependency Injection module managing the local Room Database lifecycle
+ * and providing SQLite Data Access Objects (DAOs) across the repository layers.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    /**
+     * Builds and provides a single, thread-safe instance of the Room database engine.
+     * Configured with destructive migration fallbacks optimized for standard application updates.
+     */
     @Provides
     @Singleton
     fun provideMondialDatabase(
@@ -26,21 +34,33 @@ object DatabaseModule {
             context,
             MondialDatabase::class.java,
             "mondial.db"
-        ).fallbackToDestructiveMigration().build()
+        )
+        // Updated to adhere to modern Room 2.7+ specifications to safely drop tables upon version mismatch
+        .fallbackToDestructiveMigration(dropAllTables = true)
+        .build()
     }
 
+    /**
+     * Provides the Data Access Object handling database operations for match data models.
+     */
     @Provides
     @Singleton
     fun provideMatchDao(database: MondialDatabase): MatchDao {
         return database.matchDao()
     }
 
+    /**
+     * Provides the Data Access Object handling database operations for localized sports news feeds.
+     */
     @Provides
     @Singleton
     fun provideNewsDao(database: MondialDatabase): NewsDao {
         return database.newsDao()
     }
 
+    /**
+     * Provides the Data Access Object handling keys for remote pagination syncing structures.
+     */
     @Provides
     @Singleton
     fun provideMatchRemoteKeysDao(database: MondialDatabase): MatchRemoteKeysDao {
