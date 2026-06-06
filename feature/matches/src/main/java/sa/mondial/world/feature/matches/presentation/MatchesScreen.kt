@@ -8,22 +8,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.delay
-import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.domain.MatchStatus
 import java.time.ZoneId
@@ -31,46 +32,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SwipeToRefresh(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
-) {
-    val state = rememberPullToRefreshState()
-    Box(
-        modifier = modifier.pullToRefresh(
-            state = state,
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh
-        )
-    ) {
-        content()
-        PullToRefreshContainer(
-            state = state,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PullToRefreshBox(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
-) {
-    SwipeToRefresh(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier,
-        content = content
-    )
-}
-
+/**
+ * Main dashboard display listing Mondial matches with full Paging 3 support and an integrated refresh engine.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchesScreen(
@@ -82,35 +46,37 @@ fun MatchesScreen(
     val isAr = language == "ar"
     
     val listState = rememberLazyListState()
-    
-    // Paging 3 Collection bindings (Lazy List integrations)
     val pagedMatches = viewModel.pagedMatchesFlow.collectAsLazyPagingItems()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (isAr) "مباريات المونديال الذكية" else "Mondial Paged Matches") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         },
         modifier = modifier
     ) { innerPadding ->
 
-        // Unification of Swipe-to-refresh pull structures
-        SwipeToRefresh(
-            isRefreshing = isRefreshing,
-            onRefresh = { 
-                viewModel.loadMondialMatches(forceRefresh = true)
-                pagedMatches.refresh()
-            },
+        // Native Material 3 pull-to-refresh structure wrapper
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .pullToRefresh(
+                    isRefreshing = isRefreshing,
+                    state = pullToRefreshState,
+                    onRefresh = { 
+                        viewModel.loadMondialMatches(forceRefresh = true)
+                        pagedMatches.refresh()
+                    }
+                )
         ) {
-            // Check loading states in Paging list
             when {
                 pagedMatches.loadState.refresh is LoadState.Loading -> {
                     ShimmerMatchListLoader(modifier = Modifier.testTag("loading_indicator"))
@@ -118,7 +84,7 @@ fun MatchesScreen(
                 pagedMatches.loadState.refresh is LoadState.Error -> {
                     val error = (pagedMatches.loadState.refresh as LoadState.Error).error
                     MatchErrorState(
-                        message = error.localizedMessage ?: "Paging Error",
+                        message = error.localizedMessage ?: "Paging Error occurred",
                         onRetry = { pagedMatches.retry() }
                     )
                 }
@@ -142,11 +108,13 @@ fun MatchesScreen(
                             }
                         }
 
-                        // Appending loading state indicating next page loads
+                        // Appending indicators for progressive layout pages
                         if (pagedMatches.loadState.append is LoadState.Loading) {
                             item {
                                 Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CircularProgressIndicator(strokeWidth = 3.dp)
@@ -156,6 +124,13 @@ fun MatchesScreen(
                     }
                 }
             }
+
+            // Material 3 loading container bound tightly over the Box scope hierarchy
+            PullToRefreshContainer(
+                isRefreshing = isRefreshing,
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -173,10 +148,10 @@ fun MatchCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Category round & local timestamp conversion
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -185,10 +160,10 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.roundAr else match.roundEn,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
                 
-                // Pure local timezone formatting
                 val formattedTime = remember(match.utcTime) {
                     match.utcTime
                         .atZone(ZoneId.systemDefault())
@@ -208,7 +183,6 @@ fun MatchCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Dual flags layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -217,48 +191,58 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn,
                     style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f)
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = if (isAr) TextAlign.Right else TextAlign.Left
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 ) {
-                    Text(
-                        text = match.homeScore?.toString() ?: "-",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(" : ", modifier = Modifier.padding(horizontal = 6.dp))
-                    Text(
-                        text = match.awayScore?.toString() ?: "-",
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = match.homeScore?.toString() ?: "-",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = " : ", 
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(horizontal = 4.git dp)
+                        )
+                        Text(
+                            text = match.awayScore?.toString() ?: "-",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 Text(
                     text = if (isAr) match.awayTeamNameAr else match.awayTeamNameEn,
                     style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
-                    color = Color.Unspecified
+                    textAlign = if (isAr) TextAlign.Left else TextAlign.Right
                 )
             }
 
-            // Countdown timer for UPCOMING matches
+            // Real-time counter for match kickoffs
             if (match.matchStatus == MatchStatus.UPCOMING) {
                 val remainingMillis by produceState(
                     initialValue = match.utcTime.toEpochMilli() - System.currentTimeMillis(),
                     key1 = match.utcTime
                 ) {
                     while (value > 0) {
-                        val now = System.currentTimeMillis()
                         val target = match.utcTime.toEpochMilli()
-                        val nextDelay = if (target > now) target - now else 0
-                        if (nextDelay > 0) {
-                            delay(nextDelay)
-                            value = target - System.currentTimeMillis()
-                        } else {
-                            value = 0
-                        }
+                        val diff = target - System.currentTimeMillis()
+                        value = if (diff > 0) diff else 0
                         delay(1000L)
                     }
                 }
@@ -266,15 +250,13 @@ fun MatchCard(
                 if (remainingMillis > 0) {
                     val totalSeconds = remainingMillis / 1000
                     val seconds = totalSeconds % 60
-                    val totalMinutes = totalSeconds / 60
-                    val minutes = totalMinutes % 60
-                    val totalHours = totalMinutes / 60
-                    val hours = totalHours % 24
-                    val days = totalHours / 24
+                    val minutes = (totalSeconds / 60) % 60
+                    val hours = (totalSeconds / 3600) % 24
+                    val days = totalSeconds / 86400
 
                     val countdownStr = "${days}d ${hours}h ${minutes}m ${seconds}s"
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.tertiaryContainer,
                         shape = RoundedCornerShape(6.dp),
@@ -284,18 +266,20 @@ fun MatchCard(
                             text = if (isAr) "يبدأ بعد: $countdownStr" else "Starts in: $countdownStr",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
-            // Expanded Official XI Lineup
             TextButton(
                 onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 8.dp)
             ) {
-                Text(if (isExpanded) (if (isAr) "إخفاء التشكيل" else "Hide Squad") else (if (isAr) "عرض التشكيلة الرسمية" else "Official lineups"))
+                Text(if (isExpanded) (if (isAr) "إخفاء التشكيل" else "Hide Squad") else (if (isAr) "عرض التشكيلة الرسمية" else "Official Lineups"))
             }
 
             AnimatedVisibility(
@@ -311,16 +295,26 @@ fun MatchCard(
                         .padding(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                        match.homeLineup.forEach { player ->
-                            Text("• $player", style = MaterialTheme.typography.bodySmall)
+                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        if (match.homeLineup.isEmpty()) {
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        } else {
+                            match.homeLineup.forEach { player ->
+                                Text("• $player", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                     Spacer(Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "الاحتياط" else "Bench squad", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                        match.awayLineup.forEach { player ->
-                            Text("• $player", style = MaterialTheme.typography.bodySmall)
+                        Text(if (isAr) "الاحتياط" else "Bench Squad", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        if (match.awayLineup.isEmpty()) {
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        } else {
+                            match.awayLineup.forEach { player ->
+                                Text("• $player", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
@@ -332,46 +326,46 @@ fun MatchCard(
 @Composable
 fun ShimmerMatchListLoader(modifier: Modifier = Modifier) {
     val shimmerInstance = rememberShimmer()
-    Box(modifier = modifier.shimmer(shimmerInstance).padding(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            repeat(3) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(130.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Gray.copy(alpha = 0.15f))
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ErrorBannerCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = message, modifier = Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .shimmer(shimmerInstance)
+                    .background(Color.Gray.copy(alpha = 0.15f))
+            )
+        }
     }
 }
 
 @Composable
 fun MatchErrorState(message: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(message, color = MaterialTheme.colorScheme.error)
-        Button(onClick = onRetry, modifier = Modifier.padding(top = 10.dp)) { Text("Retry Load") }
+        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onRetry) { Text("Retry Load") }
     }
 }
 
 @Composable
 fun MatchEmptyState(isAr: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(if (isAr) "لا توجد مباريات حية حالياً." else "No live matches found.")
+        Text(
+            text = if (isAr) "لا توجد مباريات حية حالياً." else "No live matches found.",
+            color = MaterialTheme.colorScheme.outline
+        )
     }
 }
