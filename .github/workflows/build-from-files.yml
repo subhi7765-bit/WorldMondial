@@ -1,22 +1,20 @@
-name: Build World Mondial Debug APK
+name: Build from Files (Recommended)
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'project.txt'
+    paths-ignore: ['project.txt', '*.md']
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -24,57 +22,65 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
 
-      - name: Make Gradle Executable
+      - name: Make gradlew Executable
         run: chmod +x ./gradlew
 
-      - name: Apply Hotfixes (Critical Fixes)
+      - name: Fix Root build.gradle.kts (Critical)
         run: |
-          echo "🔧 Applying critical hotfixes..."
+          echo "🔧 Fixing root build.gradle.kts..."
+          cat > build.gradle.kts << 'EOF'
+          plugins {
+              alias(libs.plugins.android.application)  apply false
+              alias(libs.plugins.android.library)      apply false
+              alias(libs.plugins.kotlin.android)       apply false
+              alias(libs.plugins.kotlin.compose)       apply false
+              alias(libs.plugins.kotlin.serialization) apply false
+              alias(libs.plugins.ksp)                  apply false
+              alias(libs.plugins.hilt)                 apply false
+              alias(libs.plugins.google.services)      apply false
+          }
 
-          # FIX-1: BaseRepository visibility
-          if [ -f "core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt" ]; then
-            sed -i 's/protected lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt
-            sed -i 's/internal lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt
-            echo "✅ FIX-1: BaseRepository visibility fixed"
-          fi
+          subprojects {
+              tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                  compilerOptions {
+                      jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                      freeCompilerArgs.addAll(
+                          "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                          "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                          "-opt-in=kotlinx.coroutines.FlowPreview"
+                      )
+                  }
+              }
+          }
+          EOF
+          echo "✅ Root build.gradle.kts fixed"
 
-          # FIX-2: DatabaseModule Room
-          if [ -f "core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt" ]; then
-            sed -i 's/\.fallbackToDestructiveMigration()/\.fallbackToDestructiveMigration(dropAllTables = true)/g' core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt
-            echo "✅ FIX-2: DatabaseModule updated"
-          fi
+      - name: Apply Other Hotfixes
+        run: |
+          echo "🔧 Applying additional hotfixes..."
 
-          # FIX-3: AppError overrides
-          if [ -f "core/common/src/main/java/sa/mondial/world/core/common/AppError.kt" ]; then
-            sed -i 's/val message: String\?/override val message: String?/g' core/common/src/main/java/sa/mondial/world/core/common/AppError.kt
-            echo "✅ FIX-3: AppError.kt fixed"
-          fi
+          # BaseRepository visibility
+          sed -i 's/protected lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt 2>/dev/null || true
+          sed -i 's/internal lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt 2>/dev/null || true
 
-          # FIX-4: Remove package= from main manifest (AGP 8+)
-          if [ -f "app/src/main/AndroidManifest.xml" ]; then
-            sed -i '/package="/d' app/src/main/AndroidManifest.xml
-            echo "✅ FIX-4: Manifest package attribute removed"
-          fi
+          # Room migration fix
+          sed -i 's/\.fallbackToDestructiveMigration()/\.fallbackToDestructiveMigration(dropAllTables = true)/g' core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt 2>/dev/null || true
+
+          # Remove deprecated package= from manifest
+          sed -i '/package="/d' app/src/main/AndroidManifest.xml 2>/dev/null || true
+
+          echo "✅ All hotfixes applied"
 
       - name: Check Project Structure
         run: |
-          echo "📁 Project files:"
           ls -la
-          echo "📁 App folder:"
-          ls -la app
-          echo "📁 Core modules:"
-          ls -la core/
-          echo "📁 Feature modules:"
-          ls -la feature/
+          echo "App:" && ls -la app
+          echo "Core:" && ls -la core/
+          echo "Feature:" && ls -la feature/
 
       - name: Build Debug APK
-        run: |
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
-            --warning-mode all
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace --warning-mode all
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -83,11 +89,3 @@ jobs:
           name: WorldMondial-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-
-      - name: Show Build Summary
-        if: always()
-        run: |
-          echo "📊 Build finished."
-          if [ -d "app/build/outputs/apk/debug" ]; then
-            ls -lh app/build/outputs/apk/debug/
-          fi
