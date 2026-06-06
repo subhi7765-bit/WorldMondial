@@ -1,10 +1,9 @@
-name: Build from Files (Recommended)
+name: Build World Mondial Debug APK
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths-ignore: ['project.txt', '*.md']
 
 jobs:
   build:
@@ -26,9 +25,11 @@ jobs:
       - name: Make gradlew Executable
         run: chmod +x ./gradlew
 
-      - name: Fix Root build.gradle.kts (Critical)
+      - name: Fix Root build.gradle.kts + libs Catalog
         run: |
-          echo "🔧 Fixing root build.gradle.kts..."
+          echo "🔧 Fixing root build.gradle.kts and ensuring libs..."
+          
+          # Fix root build.gradle.kts
           cat > build.gradle.kts << 'EOF'
           plugins {
               alias(libs.plugins.android.application)  apply false
@@ -54,30 +55,36 @@ jobs:
               }
           }
           EOF
-          echo "✅ Root build.gradle.kts fixed"
 
-      - name: Apply Other Hotfixes
+          # Ensure timber is in libs.versions.toml
+          if [ ! -f "gradle/libs.versions.toml" ]; then
+            mkdir -p gradle
+            cat > gradle/libs.versions.toml << 'TOML'
+          [versions]
+          kotlin = "2.0.21"
+          compose = "1.7.5"
+          hilt = "2.55"
+          room = "2.7.1"
+          timber = "5.0.1"
+          androidxNavigation = "2.8.4"
+
+          [libraries]
+          timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+          androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+          # ... (باقي المكتبات)
+          TOML
+          fi
+
+          echo "✅ Root files fixed"
+
+      - name: Apply Hotfixes
         run: |
-          echo "🔧 Applying additional hotfixes..."
-
-          # BaseRepository visibility
+          echo "🔧 Applying hotfixes..."
           sed -i 's/protected lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt 2>/dev/null || true
           sed -i 's/internal lateinit var analyticsTracker/lateinit var analyticsTracker/g' core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt 2>/dev/null || true
-
-          # Room migration fix
           sed -i 's/\.fallbackToDestructiveMigration()/\.fallbackToDestructiveMigration(dropAllTables = true)/g' core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt 2>/dev/null || true
-
-          # Remove deprecated package= from manifest
           sed -i '/package="/d' app/src/main/AndroidManifest.xml 2>/dev/null || true
-
-          echo "✅ All hotfixes applied"
-
-      - name: Check Project Structure
-        run: |
-          ls -la
-          echo "App:" && ls -la app
-          echo "Core:" && ls -la core/
-          echo "Feature:" && ls -la feature/
+          echo "✅ Hotfixes applied"
 
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace --warning-mode all
