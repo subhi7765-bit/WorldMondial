@@ -3,14 +3,13 @@ package sa.mondial.world.feature.news.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,8 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.News
-import sa.mondial.world.feature.matches.presentation.PullToRefreshBox
 
+/**
+ * Main Composable representing the Mondial localized news feed screen.
+ * Implements standard Unidirectional Data Flow using the clean Material 3 design pipeline.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(
@@ -34,25 +36,31 @@ fun NewsScreen(
     val isAr = language == "ar"
 
     val listState = rememberLazyListState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (isAr) "تطورات المونديال" else "Mondial News Flash") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             )
         },
         modifier = modifier
     ) { innerPadding ->
 
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.loadMondialNews(forceRefresh = true) },
+        // Built-in stable native Material 3 pull-to-refresh structure wrapper
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .pullToRefresh(
+                    isRefreshing = isRefreshing,
+                    state = pullToRefreshState,
+                    onRefresh = { viewModel.loadMondialNews(forceRefresh = true) }
+                )
         ) {
             when (val state = uiState) {
                 is UiState.Loading -> {
@@ -66,17 +74,30 @@ fun NewsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         items(state.data, key = { it.id }) { newsItem ->
-                            NewsCard(news = newsItem, isAr = isAr, onClick = { onNavigateToDetails(newsItem.id) })
+                            NewsCard(
+                                news = newsItem,
+                                isAr = isAr,
+                                onClick = { onNavigateToDetails(newsItem.id) }
+                            )
                         }
                     }
                 }
                 is UiState.Error -> {
-                    NewsErrorState(message = state.displayMessage) { viewModel.loadMondialNews(forceRefresh = true) }
+                    NewsErrorState(message = state.displayMessage) {
+                        viewModel.loadMondialNews(forceRefresh = true)
+                    }
                 }
                 is UiState.Empty -> {
                     NewsEmptyState(isAr = isAr)
                 }
             }
+
+            // Clean, non-blocking standard indicator alignment
+            PullToRefreshContainer(
+                isRefreshing = isRefreshing,
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -90,10 +111,11 @@ fun NewsCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Category Badge
+            // Localized Category Badge Widget
             Box(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
@@ -108,6 +130,7 @@ fun NewsCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Localized Dynamic Title
             Text(
                 text = if (isAr) news.titleAr else news.titleEn,
                 style = MaterialTheme.typography.titleMedium,
@@ -116,6 +139,7 @@ fun NewsCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Footer Row mapping read times and metadata flags
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -141,7 +165,12 @@ fun NewsCard(
 
 @Composable
 fun ShimmerNewsLoader() {
-    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         repeat(3) {
             Box(
                 modifier = Modifier
@@ -157,12 +186,15 @@ fun ShimmerNewsLoader() {
 @Composable
 fun NewsErrorState(message: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = message, color = MaterialTheme.colorScheme.error)
-        Button(onClick = onRetry, modifier = Modifier.padding(top = 10.dp)) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onRetry) {
             Text("Re-load News Feed")
         }
     }
@@ -170,7 +202,14 @@ fun NewsErrorState(message: String, onRetry: () -> Unit) {
 
 @Composable
 fun NewsEmptyState(isAr: Boolean) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.")
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline
+        )
     }
 }
