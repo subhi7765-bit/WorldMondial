@@ -63,7 +63,7 @@ jobs:
               write(base_repo_path, c)
               print("✅ FIX-1: BaseRepository.kt — analyticsTracker visibility set to public")
 
-          # FIX-2: DatabaseModule — fallbackToDestructiveMigration() deprecated in Room 2.7+
+          # FIX-2: DatabaseModule — توافقية Room 2.7+
           db_module = 'core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt'
           if os.path.exists(db_module):
               c = read(db_module)
@@ -74,7 +74,7 @@ jobs:
               write(db_module, c)
               print("✅ FIX-2: DatabaseModule.kt — fallbackToDestructiveMigration updated")
 
-          # FIX-3: AppError.kt — Database.message يحتاج override من Throwable
+          # FIX-3: AppError.kt — إضافة override للمتغير message
           ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
           if os.path.exists(ae):
               c = read(ae)
@@ -87,7 +87,7 @@ jobs:
               write(ae, c)
               print("✅ FIX-3: AppError.kt — override message added")
 
-          # FIX-4: AuthRepository.kt — ترتيب imports خاطئ في الملف الأصلي
+          # FIX-4: AuthRepository.kt — ترتيب الـ imports بشكل سليم
           write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
               package sa.mondial.world.core.network
@@ -117,8 +117,8 @@ jobs:
               """))
           print("✅ FIX-4: AuthRepository.kt — imports reordered")
 
-          # FIX-5: SettingsScreen R import من app namespace إلى feature namespace
-          ss = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
+          # FIX-5: SettingsScreen R import
+          ss = 'feature/settings/src/main/java/sa/mondial.world/feature/settings/presentation/SettingsScreen.kt'
           if os.path.exists(ss):
               c = read(ss)
               c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
@@ -142,19 +142,19 @@ jobs:
           """))
           print("✅ FIX-5: SettingsScreen R import fixed")
 
-          # FIX-6: Feature modules — إضافة dependencies الناقصة إن لم تكن موجودة
+          # FIX-6: Feature modules dependencies — تم تحديث الربط التلقائي لضخ معالجات hilt لكل ميزة
           for mod in ['feature/news', 'feature/matches', 'feature/settings']:
               p = f'{mod}/build.gradle.kts'
               if os.path.exists(p):
                   c = read(p)
                   if 'core:database' not in c:
                       c = c.replace(
-                          'implementation(project(":core:common"))',
-                          'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))'
+                          'dependencies {',
+                          'dependencies {\n    ksp(libs.hilt.compiler)\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))'
                       )
                       write(p, c)
 
-          # FIX-7: MatchDetailsScreen — إصلاح multiline strings
+          # FIX-7: MatchDetailsScreen multiline strings
           mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
           if os.path.exists(mds_path):
               c = read(mds_path).replace('\r\n', '\n')
@@ -548,7 +548,7 @@ jobs:
           }
           """))
 
-          # core:sync
+          # core:sync — تم مد جسور الربط بين المزامنة والميزات وضخ مكتبة الأخطاء Timber
           write('core/sync/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -569,10 +569,13 @@ jobs:
               implementation(libs.hilt.android)
               ksp(libs.hilt.compiler)
               implementation(libs.androidx.work.runtime)
+              implementation(libs.timber)
               implementation(project(":core:common"))
               implementation(project(":core:data"))
               implementation(project(":core:network"))
               implementation(project(":core:domain"))
+              implementation(project(":feature:news"))
+              implementation(project(":feature:matches"))
           }
           """))
 
@@ -600,7 +603,7 @@ jobs:
           """))
           print("✅ core modules build.gradle.kts")
 
-          # ── 7. Feature modules ──────────────────────────────────────────
+          # ── 7. Feature modules — تم ضخ مكتبات الكوروتين الأساسية لحل مشكلة معالج KSP التلقائي
           feature_gradle = """\
           plugins {{
               alias(libs.plugins.android.library)
@@ -632,6 +635,8 @@ jobs:
               implementation(libs.coil.compose)
               implementation(libs.androidx.paging.runtime)
               implementation(libs.androidx.paging.compose)
+              implementation(libs.kotlinx.coroutines.core)
+              implementation(libs.kotlinx.coroutines.android)
               implementation(project(":core:common"))
               implementation(project(":core:domain"))
               implementation(project(":core:database"))
