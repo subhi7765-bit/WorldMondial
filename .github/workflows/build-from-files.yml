@@ -25,10 +25,10 @@ jobs:
       - name: Make gradlew Executable
         run: chmod +x ./gradlew
 
-      - name: Fix Root build.gradle.kts + libs Catalog
+      - name: Fix Root Configuration + Version Catalog
         run: |
-          echo "🔧 Fixing root build.gradle.kts and ensuring libs..."
-          
+          echo "🔧 Fixing root configuration and libs.versions.toml..."
+
           # Fix root build.gradle.kts
           cat > build.gradle.kts << 'EOF'
           plugins {
@@ -56,26 +56,52 @@ jobs:
           }
           EOF
 
-          # Ensure timber is in libs.versions.toml
-          if [ ! -f "gradle/libs.versions.toml" ]; then
-            mkdir -p gradle
-            cat > gradle/libs.versions.toml << 'TOML'
+          # Create full libs.versions.toml
+          mkdir -p gradle
+          cat > gradle/libs.versions.toml << 'TOML'
           [versions]
           kotlin = "2.0.21"
           compose = "1.7.5"
+          material3 = "1.3.1"
           hilt = "2.55"
           room = "2.7.1"
-          timber = "5.0.1"
           androidxNavigation = "2.8.4"
+          timber = "5.0.1"
+          retrofit = "2.11.0"
+          okhttp = "4.12.0"
+          lifecycle = "2.8.7"
+          work = "2.9.1"
+          ksp = "2.0.21-1.0.26"
+          androidGradlePlugin = "8.7.2"
 
           [libraries]
           timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
           androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
-          # ... (باقي المكتبات)
-          TOML
-          fi
+          androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
+          androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+          androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigation" }
+          hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+          hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+          kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.6.3" }
+          room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+          room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+          room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+          retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+          okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+          androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 
-          echo "✅ Root files fixed"
+          [plugins]
+          android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+          android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+          kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+          kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+          kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+          ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+          hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+          google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+          TOML
+
+          echo "✅ Full libs.versions.toml created"
 
       - name: Apply Hotfixes
         run: |
@@ -87,7 +113,7 @@ jobs:
           echo "✅ Hotfixes applied"
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace --warning-mode all
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
