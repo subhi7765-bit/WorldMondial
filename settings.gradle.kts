@@ -1,6 +1,12 @@
 pluginManagement {
     repositories {
-        google()
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -16,7 +22,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "WorldMondial"
 
-// ==================== Core Modules ====================
+// ==================== Core Layers Modules ====================
 include(":core:common")
 include(":core:di")
 include(":core:network")
@@ -29,10 +35,10 @@ include(":core:testing")
 include(":core:notifications")
 include(":core:analytics")
 
-// ==================== Feature Modules ====================
+// ==================== Feature UI Modules ====================
 include(":feature:matches")
 include(":feature:news")
 include(":feature:settings")
 
-// ==================== App Module ====================
+// ==================== Main App Module ====================
 include(":app")
