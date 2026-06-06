@@ -74,7 +74,7 @@ jobs:
               write(db_module, c)
               print("✅ FIX-2: DatabaseModule.kt — fallbackToDestructiveMigration updated")
 
-          # FIX-3: AppError.kt — إضافة override للمتغير message
+          # FIX-3: AppError.kt — Database.message يحتاج override من Throwable
           ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
           if os.path.exists(ae):
               c = read(ae)
@@ -142,7 +142,7 @@ jobs:
           """))
           print("✅ FIX-5: SettingsScreen R import fixed")
 
-          # FIX-6: Feature modules dependencies — تم تحديث الربط التلقائي لضخ معالجات hilt لكل ميزة
+          # FIX-6: Feature modules dependencies
           for mod in ['feature/news', 'feature/matches', 'feature/settings']:
               p = f'{mod}/build.gradle.kts'
               if os.path.exists(p):
@@ -434,7 +434,7 @@ jobs:
           }
           """))
 
-          # core:data — تم تأمين الاعتمادية الكاملة
+          # core:data — تم تأمين الاعتمادية الكاملة لـ Retrofit
           write('core/data/build.gradle.kts', textwrap.dedent("""\
           plugins {
               alias(libs.plugins.android.library)
@@ -603,7 +603,7 @@ jobs:
           """))
           print("✅ core modules build.gradle.kts")
 
-          # ── 7. Feature modules — تم ضخ مكتبات الكوروتين الأساسية لحل مشكلة معالج KSP التلقائي
+          # ── 7. Feature modules — ضخ موديول :core:di لحل مشكلة الـ @IoDispatcher المفقود للـ KSP
           feature_gradle = """\
           plugins {{
               alias(libs.plugins.android.library)
@@ -638,6 +638,7 @@ jobs:
               implementation(libs.kotlinx.coroutines.core)
               implementation(libs.kotlinx.coroutines.android)
               implementation(project(":core:common"))
+              implementation(project(":core:di"))
               implementation(project(":core:domain"))
               implementation(project(":core:database"))
               implementation(project(":core:network"))
