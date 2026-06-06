@@ -1,8 +1,3 @@
-// ================================================
-// Root Project Build Configuration
-// World Mondial - Multi-module Clean Architecture
-// ================================================
-
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
@@ -11,26 +6,28 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.google.services) apply false
 }
 
-// Global Kotlin compiler options for all subprojects
 subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
-            
-            freeCompilerArgs = freeCompilerArgs + listOf(
+        // Migrated from deprecated kotlinOptions to modern compilerOptions DSL required by Gradle 9+
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            freeCompilerArgs.addAll(
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
                 "-opt-in=kotlinx.coroutines.FlowPreview"
             )
         }
     }
-}
 
-// Java Toolchain for consistency across modules
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+    // Modern architecture configurations configuration targeting clean Java 17 bytecode injection
+    plugins.withType<org.gradle.api.plugins.JavaPlugin>().configureEach {
+        extensions.configure<org.gradle.api.plugins.JavaPluginExtension> {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(17))
+            }
+        }
     }
 }
