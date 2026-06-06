@@ -14,17 +14,27 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import javax.inject.Inject
 
 /**
- * Base abstract class ensuring secure network parsing with specific thread enforcement.
+ * Base abstract repository orchestrating safe network and database transactions.
+ * Enforces strict thread boundaries using an injected coroutine dispatcher and encapsulates
+ * automated retry mechanisms with exponential backoff.
  */
 abstract class BaseRepository(
     private val ioDispatcher: CoroutineDispatcher
 ) {
+
+    // Fixed visibility modifier from protected to public to allow Dagger-Hilt field injection to compile smoothly
     @Inject
-    protected lateinit var analyticsTracker: sa.mondial.world.core.analytics.AnalyticsTracker
+    lateinit var analyticsTracker: sa.mondial.world.core.analytics.AnalyticsTracker
 
     /**
-     * Executes safe coroutine transaction across Io bounds with internal catch pipeline mapping to AppErrors.
-     * Implements configurable retry attempts with customizable initial delay and exponential backoff.
+     * Executes an asynchronous API or storage call within safe asynchronous IO bounds, catches any unhandled
+     * downstream exceptions, logs analytical troubleshooting insights, and maps failures into an [AppError] wrapper.
+     *
+     * @param T The data type returned by the successful transaction block.
+     * @param maxAttempts The total number of execution retries allowed before throwing a final failure wrapper.
+     * @param initialDelayMillis The initial suspension period before executing the first retry block.
+     * @param apiCall The suspending lambda containing the actual network execution block.
+     * @return A wrapped [Result] containing either standard [Result.Success] or tracked [Result.Error].
      */
     suspend fun <T> safeApiCall(
         maxAttempts: Int = 3,
@@ -42,7 +52,7 @@ abstract class BaseRepository(
                     attempts++
                     lastThrowable = throwable
 
-                    // Catch standard HTTP 401 and 503 errors and generate troubleshooting events
+                    // Track critical server issues (401 Unauthorized / 503 Service Unavailable) to analytics safely
                     if (throwable is retrofit2.HttpException) {
                         val code = throwable.code()
                         if (code == 401 || code == 503) {
@@ -74,6 +84,7 @@ abstract class BaseRepository(
                         }
                     }
 
+                    // Apply exponential backoff multiplier delay if further evaluation attempts are permitted
                     if (attempts < maxAttempts) {
                         val backoffDelay = initialDelayMillis * (1 shl (attempts - 1))
                         Timber.w(throwable, "safeApiCall: Attempt $attempts failed. Retrying in ${backoffDelay}ms...")
@@ -82,14 +93,16 @@ abstract class BaseRepository(
                 }
             }
 
-            val finalThrowable = lastThrowable ?: RuntimeException("Execution failure")
-            Timber.e(finalThrowable, "safeApiCall: Logging exception context to Firebase Crashlytics")
+            // Exceeded maximum retry attempts; package transaction logs and report to Crashlytics
+            val finalThrowable = lastThrowable ?: RuntimeException("Execution failure context missing")
+            Timber.e(finalThrowable, "safeApiCall: Logging final exception context to Firebase Crashlytics")
             try {
                 FirebaseCrashlytics.getInstance().recordException(finalThrowable)
             } catch (e: Exception) {
-                Timber.e(e, "Firebase Crashlytics not initialized yet")
+                Timber.e(e, "Firebase Crashlytics framework is not initialized yet")
             }
 
+            // Map standard system failures into structured AppError invariants
             val appError = when (finalThrowable) {
                 is UnknownHostException, is ConnectException, is SocketTimeoutException -> {
                     AppError.Network(0, finalThrowable.localizedMessage)
@@ -101,7 +114,7 @@ abstract class BaseRepository(
                     AppError.Network(finalThrowable.code, finalThrowable.localizedMessage)
                 }
                 is IOException -> {
-                    AppError.Database("Local storage or API IO transaction", finalThrowable)
+                    AppError.Database("Local storage or API IO transaction conversion failure", finalThrowable)
                 }
                 is AppError -> finalThrowable
                 else -> AppError.Unknown(finalThrowable)
