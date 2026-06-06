@@ -7,10 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
@@ -25,13 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.rememberShimmer
-import sa.mondial.world.R
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.LineupPlayer
 import sa.mondial.world.core.domain.MatchDetails
@@ -41,6 +35,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
+/**
+ * Detailed intelligence screen presenting formations, timelines, scores and metrics for a specific Mondial match.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchDetailsScreen(
@@ -95,16 +92,17 @@ fun MatchDetailsScreen(
                                 } ?: ""
                                 val venue = if (isAr) detailsObj.venueAr else detailsObj.venueEn
                                 
+                                // Fixed multiline string instantiation utilizing raw Kotlin triple quotes blocks
                                 val shareText = if (isAr) {
-                                    "🏆 $homeTeam × $awayTeam
+                                    """🏆 $homeTeam × $awayTeam
 ⚽ النتيجة: $homeScore-$awayScore
 📅 التاريخ: $date
-🏟️ الملعب: $venue"
+🏟️ الملعب: $venue"""
                                 } else {
-                                    "🏆 $homeTeam vs $awayTeam
+                                    """🏆 $homeTeam vs $awayTeam
 ⚽ Score: $homeScore-$awayScore
 📅 Date: $date
-🏟️ Venue: $venue"
+🏟️ Venue: $venue"""
                                 }
                                 
                                 val sendIntent = Intent().apply {
@@ -120,7 +118,7 @@ fun MatchDetailsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(id = R.string.share_match)
+                            contentDescription = "Share Match Metrics"
                         )
                     }
                 },
@@ -146,9 +144,7 @@ fun MatchDetailsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(
@@ -217,24 +213,40 @@ fun MatchDetailsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Header Information Card
         item {
             MatchHeaderCard(details = details, isAr = isAr)
         }
 
-        // 1b. Stadium Location Card
+        // Native embedded stadium card rendering layout safely decoupling multi-feature modules paths
         item {
-            StadiumLocationCard(stadiumName = if (isAr) details.venueAr else details.venueEn)
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = if (isAr) "🏟️ الاستاد والملعب" else "🏟️ Stadium Venue",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (isAr) details.venueAr else details.venueEn,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
-        // 2. Livescore events
         if (details.timelineEventsAr.isNotEmpty()) {
             item {
                 TimelineEventsCard(details = details, isAr = isAr)
             }
         }
 
-        // 3. HOME TEAM SQUAD SECTIONS
         item {
             Text(
                 text = if (isAr) "تشكيلة ${details.homeTeamNameAr}" else "${details.homeTeamNameEn} Squad",
@@ -247,7 +259,7 @@ fun MatchDetailsContent(
 
         item {
             CardAccordionSection(
-                title = if (isAr) "التشكيلة الأساسية (التشكيلة الأساسية)" else "Starting XI",
+                title = if (isAr) "التشكيلة الأساسية" else "Starting XI",
                 isExpanded = homeStartingExpanded,
                 onToggle = { homeStartingExpanded = !homeStartingExpanded }
             ) {
@@ -257,7 +269,7 @@ fun MatchDetailsContent(
 
         item {
             CardAccordionSection(
-                title = if (isAr) "البدلاء (البدلاء)" else "Substitutes",
+                title = if (isAr) "البدلاء" else "Substitutes",
                 isExpanded = homeSubsExpanded,
                 onToggle = { homeSubsExpanded = !homeSubsExpanded }
             ) {
@@ -265,7 +277,6 @@ fun MatchDetailsContent(
             }
         }
 
-        // 4. AWAY TEAM SQUAD SECTIONS
         item {
             Text(
                 text = if (isAr) "تشكيلة ${details.awayTeamNameAr}" else "${details.awayTeamNameEn} Squad",
@@ -278,7 +289,7 @@ fun MatchDetailsContent(
 
         item {
             CardAccordionSection(
-                title = if (isAr) "التشكيلة الأساسية (التشكيلة الأساسية)" else "Starting XI",
+                title = if (isAr) "التشكيلة الأساسية" else "Starting XI",
                 isExpanded = awayStartingExpanded,
                 onToggle = { awayStartingExpanded = !awayStartingExpanded }
             ) {
@@ -288,7 +299,7 @@ fun MatchDetailsContent(
 
         item {
             CardAccordionSection(
-                title = if (isAr) "البدلاء (البدلاء)" else "Substitutes",
+                title = if (isAr) "البدلاء" else "Substitutes",
                 isExpanded = awaySubsExpanded,
                 onToggle = { awaySubsExpanded = !awaySubsExpanded }
             ) {
@@ -312,7 +323,6 @@ fun MatchHeaderCard(
             modifier = Modifier.padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Venue and Round Info
             Text(
                 text = if (isAr) details.roundAr else details.roundEn,
                 style = MaterialTheme.typography.labelLarge,
@@ -326,17 +336,13 @@ fun MatchHeaderCard(
                 modifier = Modifier.padding(top = 2.dp)
             )
 
-            WeatherWidget(venue = details.venueEn, isAr = isAr)
-
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Scoreboard Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Home Team
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.weight(1f)
@@ -354,7 +360,6 @@ fun MatchHeaderCard(
                     )
                 }
 
-                // Scores
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
@@ -381,7 +386,6 @@ fun MatchHeaderCard(
                     )
                 }
 
-                // Away Team
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.weight(1f)
@@ -402,7 +406,6 @@ fun MatchHeaderCard(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Match status badge
             val statusLabel = when (details.matchStatus) {
                 MatchStatus.FINISHED -> if (isAr) "انتهت" else "Full Time"
                 MatchStatus.LIVE -> if (isAr) "مباشر" else "LIVE Match"
@@ -431,7 +434,6 @@ fun MatchHeaderCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Referee and Time
             val localTime = remember(details.utcTime) {
                 val zonedDateTime = java.time.ZonedDateTime.ofInstant(details.utcTime, java.time.ZoneId.of("UTC"))
                 val localZonedDateTime = zonedDateTime.withZoneSameInstant(java.time.ZoneId.systemDefault())
@@ -496,85 +498,12 @@ fun TimelineEventsCard(
                     )
                 }
                 if (index < list.lastIndex) {
-                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
                 }
             }
         }
     }
 }
-
-@Composable
-fun WeatherWidget(
-    venue: String,
-    isAr: Boolean
-) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val (condition, temp, humidity, icon) = remember(venue) {
-        when {
-            venue.contains("Lucail", ignoreCase = true) || venue.contains("Lusail", ignoreCase = true) -> {
-                Quadruple(sa.mondial.world.core.ui.WeatherCondition.SUNNY, "28°C", "65%", "☀️")
-            }
-            venue.contains("Khalifa", ignoreCase = true) -> {
-                Quadruple(sa.mondial.world.core.ui.WeatherCondition.CLOUDY, "26°C", "70%", "⛅")
-            }
-            venue.contains("974", ignoreCase = true) -> {
-                Quadruple(sa.mondial.world.core.ui.WeatherCondition.RAIN, "21°C", "90%", "🌧️")
-            }
-            else -> {
-                Quadruple(sa.mondial.world.core.ui.WeatherCondition.SUNNY, "25°C", "60%", "🌤️")
-            }
-        }
-    }
-
-    val weatherDesc = remember(condition, context) {
-        condition.getDisplayString(context)
-    }
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        modifier = Modifier
-            .padding(top = 10.dp)
-            .wrapContentSize()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Column {
-                Text(
-                    text = if (isAr) "الطقس: $weatherDesc" else "Weather: $weatherDesc",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "${if (isAr) "حرارة: " else "Temp: "}$temp",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = "${if (isAr) "رطوبة: " else "Humidity: "}$humidity",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-data class Quadruple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)
 
 @Composable
 fun CardAccordionSection(
@@ -588,16 +517,12 @@ fun CardAccordionSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
-            .semantics {
-                contentDescription = "$title toggle container"
-                role = Role.Button
-            }
+            .clickable { onToggle() }
     ) {
         Column(modifier = Modifier.animateContentSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle() }
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
