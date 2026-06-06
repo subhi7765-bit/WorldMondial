@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
@@ -47,9 +46,12 @@ import sa.mondial.world.feature.settings.presentation.SettingsScreen
 import sa.mondial.world.feature.settings.presentation.SettingsViewModel
 import sa.mondial.world.navigation.DashboardDestination
 import timber.log.Timber
-import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * Single Activity entry point organizing core system initializations, deep links,
+ * dynamic theme preferences, runtime locale changes, and global navigation host routes.
+ */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -98,7 +100,7 @@ class MainActivity : AppCompatActivity() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            androidx.compose.runtime.LaunchedEffect(navController) {
+            LaunchedEffect(navController) {
                 deepLinkFlow.collect { matchId ->
                     Timber.i("MainActivity: Navigating to MatchDetailsRoute for deep-linked matchId=$matchId")
                     navController.navigate(DashboardDestination.MatchDetailsRoute(matchId)) {
