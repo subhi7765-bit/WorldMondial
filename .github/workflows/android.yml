@@ -54,15 +54,16 @@ jobs:
 
           # ── 1b. إصلاحات تلقائية بعد الاستخراج ────────────────────────
 
-          # FIX-1: BaseRepository — protected → internal (Dagger لا يصل لـ protected fields)
+          # FIX-1: BaseRepository — إزالة أي محددات رؤية لجعل الحقل Public تماماً لنجاح حقن Hilt
           base_repo_path = 'core/data/src/main/java/sa/mondial/world/core/data/BaseRepository.kt'
           if os.path.exists(base_repo_path):
               c = read(base_repo_path)
-              c = c.replace('protected lateinit var analyticsTracker', 'internal lateinit var analyticsTracker')
+              c = c.replace('protected lateinit var analyticsTracker', 'lateinit var analyticsTracker')
+              c = c.replace('internal lateinit var analyticsTracker', 'lateinit var analyticsTracker')
               write(base_repo_path, c)
-              print("✅ FIX-1: BaseRepository.kt — protected → internal")
+              print("✅ FIX-1: BaseRepository.kt — analyticsTracker visibility set to public")
 
-          # FIX-2: DatabaseModule — fallbackToDestructiveMigration() deprecated in Room 2.7+
+          # FIX-2: DatabaseModule — توافقية Room 2.7+
           db_module = 'core/database/src/main/java/sa/mondial/world/core/database/di/DatabaseModule.kt'
           if os.path.exists(db_module):
               c = read(db_module)
@@ -73,7 +74,7 @@ jobs:
               write(db_module, c)
               print("✅ FIX-2: DatabaseModule.kt — fallbackToDestructiveMigration updated")
 
-          # FIX-3: AppError.kt — Database.message يحتاج override من Throwable
+          # FIX-3: AppError.kt — إضافة override للمتغير message
           ae = 'core/common/src/main/java/sa/mondial/world/core/common/AppError.kt'
           if os.path.exists(ae):
               c = read(ae)
@@ -86,7 +87,7 @@ jobs:
               write(ae, c)
               print("✅ FIX-3: AppError.kt — override message added")
 
-          # FIX-4: AuthRepository.kt — ترتيب imports خاطئ في الملف الأصلي
+          # FIX-4: AuthRepository.kt — ترتيب الـ imports بشكل سليم
           write('core/network/src/main/java/sa/mondial/world/core/network/AuthRepository.kt',
               textwrap.dedent("""\
               package sa.mondial.world.core.network
@@ -116,9 +117,9 @@ jobs:
               """))
           print("✅ FIX-4: AuthRepository.kt — imports reordered")
 
-          # FIX-5: SettingsScreen R import من app namespace إلى feature namespace
+          # FIX-5: SettingsScreen R import
           ss = 'feature/settings/src/main/java/sa/mondial/world/feature/settings/presentation/SettingsScreen.kt'
-          if os.path.exists( ss):
+          if os.path.exists(ss):
               c = read(ss)
               c = c.replace('import sa.mondial.world.R', 'import sa.mondial.world.feature.settings.R')
               write(ss, c)
@@ -141,19 +142,19 @@ jobs:
           """))
           print("✅ FIX-5: SettingsScreen R import fixed")
 
-          # FIX-6: Feature modules — إضافة dependencies الناقصة إن لم تكن موجودة
+          # FIX-6: Feature modules dependencies
           for mod in ['feature/news', 'feature/matches', 'feature/settings']:
               p = f'{mod}/build.gradle.kts'
               if os.path.exists(p):
                   c = read(p)
                   if 'core:database' not in c:
                       c = c.replace(
-                          'implementation(project(":core:common"))',
-                          'implementation(project(":core:common"))\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))'
+                          'dependencies {',
+                          'dependencies {\n    ksp(libs.hilt.compiler)\n    implementation(project(":core:database"))\n    implementation(project(":core:network"))\n    implementation(project(":core:data"))\n    implementation(project(":core:analytics"))'
                       )
                       write(p, c)
 
-          # FIX-7: MatchDetailsScreen — إصلاح multiline strings
+          # FIX-7: MatchDetailsScreen multiline strings
           mds_path = 'feature/matches/src/main/java/sa/mondial/world/feature/matches/presentation/MatchDetailsScreen.kt'
           if os.path.exists(mds_path):
               c = read(mds_path).replace('\r\n', '\n')
