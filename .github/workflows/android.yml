@@ -19,6 +19,11 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Inject Football API Key into Local Properties
+        run: |
+          echo "football.api.key=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
+          echo "FOOTBALL_API_KEY=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
+
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
