@@ -27,6 +27,9 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble Production Debug APK Bundle
+        # Force strict node architecture optimization environment variables to bypass deprecations
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Archive and Upload Compiled Modular Artifacts
