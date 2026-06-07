@@ -46,6 +46,10 @@ import sa.mondial.world.navigation.DashboardDestination
 import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * Single Activity entry point organizing core system initializations, deep links,
+ * dynamic theme preferences, runtime locale changes, and global navigation host routes.
+ */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -69,7 +73,6 @@ class MainActivity : AppCompatActivity() {
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
 
-        // Fixed Cleanly: Added strict comparison checks to permanently smash the infinite recreation loop bug
         lifecycleScope.launch {
             localizationManager.currentLanguage.collectLatest { language ->
                 val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
@@ -95,115 +98,118 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            val navController = rememberNavController()
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry?.destination
+            // Fixed Cleanly: Enforced MaterialTheme initialization wrapping block to prevent typography/color provider runtime crash
+            MaterialTheme {
+                val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
 
-            LaunchedEffect(navController) {
-                deepLinkFlow.collect { matchId ->
-                    Timber.i("MainActivity: Navigating to MatchDetailsRoute for deep-linked matchId=$matchId")
-                    navController.navigate(DashboardDestination.MatchDetailsRoute(matchId)) {
-                        launchSingleTop = true
-                    }
-                }
-            }
-
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                bottomBar = {
-                    val showBottomBar = currentDestination != null && (
-                        currentDestination.hasRoute<DashboardDestination.Matches>() ||
-                        currentDestination.hasRoute<DashboardDestination.News>() ||
-                        currentDestination.hasRoute<DashboardDestination.Settings>()
-                    )
-                    if (showBottomBar) {
-                        NavigationBar {
-                            NavigationBarItem(
-                                selected = currentDestination?.hasRoute<DashboardDestination.Matches>() == true,
-                                onClick = {
-                                    navController.navigate(DashboardDestination.Matches) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.Home, contentDescription = "Matches") },
-                                label = { Text("Matches") }
-                            )
-                            NavigationBarItem(
-                                selected = currentDestination?.hasRoute<DashboardDestination.News>() == true,
-                                onClick = {
-                                    navController.navigate(DashboardDestination.News) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.Info, contentDescription = "News") },
-                                label = { Text("News") }
-                            )
-                            NavigationBarItem(
-                                selected = currentDestination?.hasRoute<DashboardDestination.Settings>() == true,
-                                onClick = {
-                                    navController.navigate(DashboardDestination.Settings) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                                label = { Text("Settings") }
-                            )
+                LaunchedEffect(navController) {
+                    deepLinkFlow.collect { matchId ->
+                        Timber.i("MainActivity: Navigating to MatchDetailsRoute for deep-linked matchId=$matchId")
+                        navController.navigate(DashboardDestination.MatchDetailsRoute(matchId)) {
+                            launchSingleTop = true
                         }
                     }
                 }
-            ) { paddingValues ->
-                NavHost(
-                    navController = navController,
-                    startDestination = DashboardDestination.Matches,
-                    modifier = Modifier.padding(paddingValues)
-                ) {
-                    composable<DashboardDestination.Matches> {
-                        val viewModel: MatchesViewModel = hiltViewModel()
-                        MatchesScreen(
-                            viewModel = viewModel,
-                            onNavigateToDetails = { id ->
-                                navController.navigate(DashboardDestination.MatchDetailsRoute(id))
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        val showBottomBar = currentDestination != null && (
+                            currentDestination.hasRoute<DashboardDestination.Matches>() ||
+                            currentDestination.hasRoute<DashboardDestination.News>() ||
+                            currentDestination.hasRoute<DashboardDestination.Settings>()
+                        )
+                        if (showBottomBar) {
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = currentDestination?.hasRoute<DashboardDestination.Matches>() == true,
+                                    onClick = {
+                                        navController.navigate(DashboardDestination.Matches) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = { Icon(Icons.Default.Home, contentDescription = "Matches") },
+                                    label = { Text("Matches") }
+                                )
+                                NavigationBarItem(
+                                    selected = currentDestination?.hasRoute<DashboardDestination.News>() == true,
+                                    onClick = {
+                                        navController.navigate(DashboardDestination.News) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = { Icon(Icons.Default.Info, contentDescription = "News") },
+                                    label = { Text("News") }
+                                )
+                                NavigationBarItem(
+                                    selected = currentDestination?.hasRoute<DashboardDestination.Settings>() == true,
+                                    onClick = {
+                                        navController.navigate(DashboardDestination.Settings) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                                    label = { Text("Settings") }
+                                )
                             }
-                        )
+                        }
                     }
-                    composable<DashboardDestination.News> {
-                        val viewModel: NewsViewModel = hiltViewModel()
-                        NewsScreen(
-                            viewModel = viewModel,
-                            onNavigateToDetails = { id ->
-                                navController.navigate(DashboardDestination.MatchDetailsRoute(id))
-                            }
-                        )
-                    }
-                    composable<DashboardDestination.Settings> {
-                        val viewModel: SettingsViewModel = hiltViewModel()
-                        SettingsScreen(
-                            viewModel = viewModel
-                        )
-                    }
-                    composable<DashboardDestination.MatchDetailsRoute> { backStackEntry ->
-                        val route = backStackEntry.toRoute<DashboardDestination.MatchDetailsRoute>()
-                        val matchId = route.matchId
-                        Timber.i("MainActivity: Extracted matchId=$matchId from MatchDetailsRoute route wrapper")
-                        val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
-                        MatchDetailsScreen(
-                            viewModel = viewModel,
-                            onNavigateBack = {
-                                navController.popBackStack()
-                            }
-                        )
+                ) { paddingValues ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = DashboardDestination.Matches,
+                        modifier = Modifier.padding(paddingValues)
+                    ) {
+                        composable<DashboardDestination.Matches> {
+                            val viewModel: MatchesViewModel = hiltViewModel()
+                            MatchesScreen(
+                                viewModel = viewModel,
+                                onNavigateToDetails = { id ->
+                                    navController.navigate(DashboardDestination.MatchDetailsRoute(id))
+                                }
+                            )
+                        }
+                        composable<DashboardDestination.News> {
+                            val viewModel: NewsViewModel = hiltViewModel()
+                            NewsScreen(
+                                viewModel = viewModel,
+                                onNavigateToDetails = { id ->
+                                    navController.navigate(DashboardDestination.MatchDetailsRoute(id))
+                                }
+                            )
+                        }
+                        composable<DashboardDestination.Settings> {
+                            val viewModel: SettingsViewModel = hiltViewModel()
+                            SettingsScreen(
+                                viewModel = viewModel
+                            )
+                        }
+                        composable<DashboardDestination.MatchDetailsRoute> { backStackEntry ->
+                            val route = backStackEntry.toRoute<DashboardDestination.MatchDetailsRoute>()
+                            val matchId = route.matchId
+                            Timber.i("MainActivity: Extracted matchId=$matchId from MatchDetailsRoute route wrapper")
+                            val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
+                            MatchDetailsScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
                     }
                 }
             }
