@@ -40,8 +40,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
-    // Fixed Cleanly: Evaporated the redundant custom config context wrapping to completely prevent ClassCastException on launch
-
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
@@ -50,7 +48,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
-        // Read saved language from DataStore asynchronously. Keep default as device locale or "en" if nothing saved.
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
