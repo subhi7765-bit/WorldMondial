@@ -8,13 +8,13 @@ import android.content.res.Configuration
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import androidx.work.Configuration as WorkConfiguration // Fixed Cleanly: Aliased to prevent collision with android.content.res.Configuration
+import androidx.work.Configuration as WorkConfiguration
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.hilt.work.HiltWorkerFactory // Fixed Cleanly: Imported Hilt Worker framework factory
+import androidx.hilt.work.HiltWorkerFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -28,16 +28,14 @@ import java.util.Locale
 import javax.inject.Inject
 
 @HiltAndroidApp
-class WorldMondialApplication : Application(), WorkConfiguration.Provider { // Fixed Cleanly: Extended WorkConfiguration Provider layout
+class WorldMondialApplication : Application(), WorkConfiguration.Provider {
 
     @Inject
     lateinit var localizationManager: LocalizationManager
 
-    // Fixed Cleanly: Injected the mandatory factory instance for Hilt multi-module worker execution
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
-    // Fixed Cleanly: Declared explicit configuration map so WorkManager knows how to instantiate MatchSyncWorker
     override val workManagerConfiguration: WorkConfiguration
         get() = WorkConfiguration.Builder()
             .setWorkerFactory(workerFactory)
@@ -61,6 +59,7 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider { // F
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
+        // Read saved language from DataStore asynchronously. Keep default as device locale or "en" if nothing saved.
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
@@ -70,8 +69,12 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider { // F
                 defaultLang
             }
             launch(Dispatchers.Main) {
-                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
-                Timber.i("WorldMondialApplication: Asynchronously set application locale to $savedLanguage")
+                // Fixed Cleanly: Enforced state layout filter checks to block multi-module background race condition restarts
+                val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                if (currentLanguageTags != savedLanguage) {
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
+                    Timber.i("WorldMondialApplication: Asynchronously set application locale to $savedLanguage")
+                }
             }
         }
     }
