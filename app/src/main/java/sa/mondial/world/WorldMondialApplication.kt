@@ -4,7 +4,6 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.res.Configuration
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -41,15 +40,7 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
-    override fun attachBaseContext(base: Context) {
-        val locale = Locale("en")
-        Locale.setDefault(locale)
-        val config = Configuration(base.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        val context = base.createConfigurationContext(config)
-        super.attachBaseContext(context)
-    }
+    // Fixed Cleanly: Evaporated the redundant custom config context wrapping to completely prevent ClassCastException on launch
 
     override fun onCreate() {
         super.onCreate()
@@ -59,6 +50,7 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
+        // Read saved language from DataStore asynchronously. Keep default as device locale or "en" if nothing saved.
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
