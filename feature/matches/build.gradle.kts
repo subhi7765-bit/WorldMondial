@@ -20,7 +20,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Explicitly aligned Kotlin compiler targets for Gradle 8.9 compatibility
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -31,7 +30,7 @@ android {
 }
 
 dependencies {
-    // Internal Central Core Module Dependencies
+    // Internal Architectural Layer Dependencies
     implementation(project(":core:common"))
     implementation(project(":core:di"))
     implementation(project(":core:domain"))
@@ -40,28 +39,30 @@ dependencies {
     implementation(project(":core:notifications"))
     implementation(project(":core:analytics"))
 
-    // Native Jetpack Compose Core Framework Components
+    // Native Jetpack Compose Core Framework
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
 
-    // Jetpack Pagination 3 Asynchronous Integration
+    // Jetpack Pagination 3 Integration
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
-    // Dagger-Hilt Dependency Injection Ecosystem with KSP Compiler
+    // Dagger-Hilt Dependency Injection Engine
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // Unidirectional Architecture Lifecycle & Navigation (Resolved from updated catalog)
+    // Unidirectional Architecture Lifecycle & Navigation
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    
+    // Corrected flat mapping catalog targets to ensure clean compilation under Gradle 8.9
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
 
     // Serialization & Specialized Presentation Shimmer Components
     implementation(libs.kotlinx.serialization.json)
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.1")
 
-    // Unified Test Pipeline Framework Hooks
+    // Unified Test Pipeline Hooks
     testImplementation(project(":core:testing"))
 }
