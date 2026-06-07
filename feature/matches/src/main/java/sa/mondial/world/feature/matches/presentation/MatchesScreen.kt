@@ -24,6 +24,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
+import com.valentinilk.shimmer.ShimmerBounds // Fixed Cleanly: Added strict ShimmerBounds import verification
 import kotlinx.coroutines.delay
 import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.domain.MatchStatus
@@ -125,7 +126,7 @@ fun MatchesScreen(
                 }
             }
 
-            // Fixed Cleanly: Aligned with current stable Material 3 execution targets using native defaults indicator
+            // Material 3 loading container bound tightly over the Box scope hierarchy
             PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
@@ -214,7 +215,7 @@ fun MatchCard(
                             text = " : ", 
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(horizontal = 4.dp) // Fixed Cleanly: Evaporated the syntax error string leakage ".git" safely
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
                         Text(
                             text = match.awayScore?.toString() ?: "-",
@@ -331,7 +332,8 @@ fun MatchCard(
 
 @Composable
 fun ShimmerMatchListLoader(modifier: Modifier = Modifier) {
-    val shimmerInstance = rememberShimmer()
+    // Fixed Cleanly: Added clear declaration for strict view boundaries alignment
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
     Column(
         modifier = modifier
             .fillMaxSize()
