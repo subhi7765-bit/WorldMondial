@@ -20,13 +20,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Explicitly aligned Kotlin compiler targets for Gradle 8.9 compatibility
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildFeatures {
         compose = true
     }
 }
 
 dependencies {
-    // Internal Architectural Layer Dependencies
+    // Internal Central Core Module Dependencies
     implementation(project(":core:common"))
     implementation(project(":core:di"))
     implementation(project(":core:domain"))
@@ -35,20 +40,20 @@ dependencies {
     implementation(project(":core:notifications"))
     implementation(project(":core:analytics"))
 
-    // Native Jetpack Compose Core Framework
+    // Native Jetpack Compose Core Framework Components
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
 
-    // Jetpack Pagination 3 Integration
+    // Jetpack Pagination 3 Asynchronous Integration
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
-    // Dagger-Hilt Dependency Injection Engine
+    // Dagger-Hilt Dependency Injection Ecosystem with KSP Compiler
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // Unidirectional Architecture Lifecycle & Navigation
+    // Unidirectional Architecture Lifecycle & Navigation (Resolved from updated catalog)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -57,6 +62,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.1")
 
-    // Unified Test Pipeline Hooks
+    // Unified Test Pipeline Framework Hooks
     testImplementation(project(":core:testing"))
 }
