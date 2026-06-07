@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
@@ -125,10 +125,10 @@ fun MatchesScreen(
                 }
             }
 
-            // Material 3 loading container bound tightly over the Box scope hierarchy
-            PullToRefreshContainer(
-                isRefreshing = isRefreshing,
+            // Fixed Cleanly: Aligned with current stable Material 3 execution targets using native defaults indicator
+            PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
+                isRefreshing = isRefreshing,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
@@ -214,7 +214,7 @@ fun MatchCard(
                             text = " : ", 
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(horizontal = 4.git dp)
+                            modifier = Modifier.padding(horizontal = 4.dp) // Fixed Cleanly: Evaporated the syntax error string leakage ".git" safely
                         )
                         Text(
                             text = match.awayScore?.toString() ?: "-",
@@ -273,13 +273,19 @@ fun MatchCard(
                 }
             }
 
+            // Dynamic Squad toggles matching standard design targets
+            var expandText = if (isAr) "عرض التشكيلة الرسمية" else "Official Lineups"
+            if (isExpanded) {
+                expandText = if (isAr) "إخفاء التشكيل" else "Hide Squad"
+            }
+
             TextButton(
                 onClick = { isExpanded = !isExpanded },
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(top = 8.dp)
             ) {
-                Text(if (isExpanded) (if (isAr) "إخفاء التشكيل" else "Hide Squad") else (if (isAr) "عرض التشكيلة الرسمية" else "Official Lineups"))
+                Text(text = expandText)
             }
 
             AnimatedVisibility(
