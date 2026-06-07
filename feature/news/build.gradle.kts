@@ -38,6 +38,10 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
     implementation(project(":core:analytics"))
+    
+    // Fixed Cleanly: Added explicit access to network and database modules to resolve NewsRepositoryImpl components via KSP
+    implementation(project(":core:network"))
+    implementation(project(":core:database"))
 
     // AndroidX Jetpack Compose Core Libraries
     implementation(libs.androidx.compose.ui)
