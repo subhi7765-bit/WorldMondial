@@ -19,7 +19,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Aligned Kotlin bytecode execution to Java 17 compatibility under Gradle 8.9
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -28,14 +27,19 @@ android {
 dependencies {
     // Internal Architectural Layer Dependencies
     implementation(project(":core:common"))
+    
+    // Fixed Cleanly: Added database and domain module access for DTO entity mapping
+    implementation(project(":core:database"))
+    implementation(project(":core:domain"))
 
     // Type-Safe REST Remote Network Layer Client & Converters
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp.logging)
-
-    // Crucial Fix: Added Kotlinx Serialization JSON library to resolve KSP NonExistentClass error
     implementation(libs.kotlinx.serialization.json)
+
+    // Fixed Cleanly: Added Timber framework dependency for TokenAuthenticator logging
+    implementation(libs.timber)
 
     // Dagger-Hilt Dependency Injection Ecosystem with KSP Compiler
     implementation(libs.hilt.android)
