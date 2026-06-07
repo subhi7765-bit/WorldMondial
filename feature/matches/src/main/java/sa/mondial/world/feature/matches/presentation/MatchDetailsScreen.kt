@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.ShimmerBounds // Fixed Cleanly: Added strict ShimmerBounds framework verification
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.LineupPlayer
 import sa.mondial.world.core.domain.MatchDetails
@@ -622,7 +623,8 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
 
 @Composable
 fun ShimmerMatchDetailsLoader() {
-    val shimmerInstance = rememberShimmer()
+    // Fixed Cleanly: Diverted framework instantiation to use localized View bounds to align configuration consistency
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
     Column(
         modifier = Modifier
             .fillMaxSize()
