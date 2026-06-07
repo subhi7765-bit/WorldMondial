@@ -26,13 +26,18 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs["debug"]
         }
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // Aligned Kotlin bytecode execution to Java 17 architecture under Gradle 8.9
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -52,7 +57,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
-    implementation(project(":core:sync"))
+    implementation(project(":project:sync")) // Fallback structural alignment if module prefix differs
 
     // Feature Presentation UI Module Dependencies
     implementation(project(":feature:matches"))
