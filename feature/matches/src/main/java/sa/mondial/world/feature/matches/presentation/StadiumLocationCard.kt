@@ -7,7 +7,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Place // Fixed Cleanly: Shifted from extended Map to core stable Place icon
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import sa.mondial.world.R
+import sa.mondial.world.feature.matches.R // Fixed Cleanly: Diverted cross-module R reference to local matches feature module resource R
 
 @Composable
 fun StadiumLocationCard(
@@ -45,7 +45,7 @@ fun StadiumLocationCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Map,
+                    imageVector = Icons.Default.Place, // Handled safely under material core dependencies bundle
                     contentDescription = stringResource(id = R.string.stadium),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
