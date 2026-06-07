@@ -54,9 +54,11 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:network"))
-    implementation(project(":project:sync")) // Kept mapping as per architecture alignment
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
+    
+    // Fixed Cleanly: Corrected the absolute path from ':project:sync' back to ':core:sync' to resolve the UnknownProjectException
+    implementation(project(":core:sync"))
 
     // Feature Presentation UI Module Dependencies
     implementation(project(":feature:matches"))
@@ -76,7 +78,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // Fixed Cleanly: Added explicit AndroidX Hilt Work integration libraries to resolve HiltWorkerFactory on app classpath
+    // AndroidX Hilt Work integration libraries to resolve HiltWorkerFactory on app classpath
     implementation("androidx.hilt:hilt-work:1.2.0")
     ksp("androidx.hilt:hilt-compiler:1.2.0")
 
