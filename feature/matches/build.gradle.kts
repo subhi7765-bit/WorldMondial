@@ -38,6 +38,10 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:notifications"))
     implementation(project(":core:analytics"))
+    
+    // Fixed Cleanly: Added remote network and local database components access to resolve MatchesRepositoryImpl parameters via KSP
+    implementation(project(":core:network"))
+    implementation(project(":core:database"))
 
     // Native Jetpack Compose Core Framework
     implementation(libs.androidx.compose.ui)
@@ -55,7 +59,7 @@ dependencies {
     // Unidirectional Architecture Lifecycle & Navigation
     implementation(libs.androidx.navigation.compose)
     
-    // Corrected flat mapping catalog targets to ensure clean compilation under Gradle 8.9
+    // Enforced flat mapping catalog targets to ensure clean compilation under Gradle 8.9
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
 
