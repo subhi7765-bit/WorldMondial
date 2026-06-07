@@ -8,11 +8,13 @@ import android.content.res.Configuration
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import androidx.work.Configuration as WorkConfiguration // Fixed Cleanly: Aliased to prevent collision with android.content.res.Configuration
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.hilt.work.HiltWorkerFactory // Fixed Cleanly: Imported Hilt Worker framework factory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -26,13 +28,22 @@ import java.util.Locale
 import javax.inject.Inject
 
 @HiltAndroidApp
-class WorldMondialApplication : Application() {
+class WorldMondialApplication : Application(), WorkConfiguration.Provider { // Fixed Cleanly: Extended WorkConfiguration Provider layout
 
     @Inject
     lateinit var localizationManager: LocalizationManager
 
+    // Fixed Cleanly: Injected the mandatory factory instance for Hilt multi-module worker execution
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    // Fixed Cleanly: Declared explicit configuration map so WorkManager knows how to instantiate MatchSyncWorker
+    override val workManagerConfiguration: WorkConfiguration
+        get() = WorkConfiguration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
     override fun attachBaseContext(base: Context) {
-        // Initial attachBaseContext using a placeholder english locale
         val locale = Locale("en")
         Locale.setDefault(locale)
         val config = Configuration(base.resources.configuration)
@@ -50,7 +61,6 @@ class WorldMondialApplication : Application() {
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
-        // Read saved language from DataStore asynchronously. Keep default as device locale or "en" if nothing saved.
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
