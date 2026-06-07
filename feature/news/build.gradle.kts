@@ -20,6 +20,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Explicitly aligned Kotlin compiler targets for Gradle 8.9 compatibility
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildFeatures {
         compose = true
     }
@@ -38,10 +43,12 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
 
-    // Lifecycle, State Tracking, and Modular Navigation
+    // Modular Navigation Architecture Hooks
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    
+    // Enforced flat mapping catalog targets to ensure clean compilation under Gradle 8.9
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
 
     // Dagger-Hilt Dependency Injection Ecosystem
     implementation(libs.hilt.android)
