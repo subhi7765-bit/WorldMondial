@@ -1,6 +1,5 @@
 name: Build World Mondial Modular APK
 
-# Configured to execute strictly on manual trigger requests to prevent automated background usage
 on:
   workflow_dispatch:
 
@@ -24,12 +23,19 @@ jobs:
           echo "football.api.key=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
           echo "FOOTBALL_API_KEY=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
 
+      - name: Decode Production Keystore File
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/worldmondial.jks
+
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
       - name: Assemble Production Debug APK Bundle
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Archive and Upload Compiled Modular Artifacts
