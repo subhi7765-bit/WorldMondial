@@ -14,7 +14,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import sa.mondial.world.R
+import sa.mondial.world.feature.settings.R // Fixed Cleanly: Diverted import from core application R to local isolated feature module resource R
 import sa.mondial.world.core.data.ThemePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
