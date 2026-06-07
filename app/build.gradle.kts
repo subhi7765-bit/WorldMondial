@@ -1,4 +1,4 @@
-plugins { // Fixed Cleanly: Shifted casing from uppercase Plugins to lowercase plugins
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -54,11 +54,9 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:network"))
+    implementation(project(":project:sync")) // Kept mapping as per architecture alignment
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
-    
-    // Fixed cleanly from :project:sync to :core:sync to match settings structure
-    implementation(project(":core:sync"))
 
     // Feature Presentation UI Module Dependencies
     implementation(project(":feature:matches"))
@@ -68,8 +66,6 @@ dependencies {
     // AndroidX Jetpack Compose Presentation Core
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
-
-    // Fixed Cleanly: Added native AppCompat core support to resolve AppCompatDelegate references in MainActivity & Application lifecycle
     implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Jetpack Modular Navigation Ecosystem & Composition Bindings
@@ -79,6 +75,10 @@ dependencies {
     // Dagger-Hilt Dependency Injection Compiler Ecosystem
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // Fixed Cleanly: Added explicit AndroidX Hilt Work integration libraries to resolve HiltWorkerFactory on app classpath
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     // Production Logging, Serialization, and Background Task Management
     implementation(libs.kotlinx.serialization.json)
