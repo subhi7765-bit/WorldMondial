@@ -59,7 +59,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
-        // Read saved language from DataStore asynchronously. Keep default as device locale or "en" if nothing saved.
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
@@ -69,7 +68,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
                 defaultLang
             }
             launch(Dispatchers.Main) {
-                // Fixed Cleanly: Enforced state layout filter checks to block multi-module background race condition restarts
                 val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
                 if (currentLanguageTags != savedLanguage) {
                     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
