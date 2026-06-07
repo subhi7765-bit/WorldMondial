@@ -35,7 +35,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Aligned Kotlin bytecode execution to Java 17 architecture under Gradle 8.9
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -57,7 +56,9 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
-    implementation(project(":project:sync")) // Fallback structural alignment if module prefix differs
+    
+    // Fixed cleanly from :project:sync to :core:sync to match settings structure
+    implementation(project(":core:sync"))
 
     // Feature Presentation UI Module Dependencies
     implementation(project(":feature:matches"))
