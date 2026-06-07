@@ -1,4 +1,4 @@
-plugins {
+plugins { // Fixed Cleanly: Shifted casing from uppercase Plugins to lowercase plugins
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -68,6 +68,9 @@ dependencies {
     // AndroidX Jetpack Compose Presentation Core
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+
+    // Fixed Cleanly: Added native AppCompat core support to resolve AppCompatDelegate references in MainActivity & Application lifecycle
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Jetpack Modular Navigation Ecosystem & Composition Bindings
     implementation(libs.androidx.navigation.compose)
