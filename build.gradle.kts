@@ -11,10 +11,10 @@ plugins {
 
 subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        // Migrated from deprecated kotlinOptions to modern compilerOptions DSL required by Gradle 9+
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-            freeCompilerArgs.addAll(
+        // Enforced stable Gradle 8.9 production compilation capabilities using structured kotlinOptions
+        kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs = freeCompilerArgs + listOf(
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
                 "-opt-in=kotlinx.coroutines.FlowPreview"
@@ -22,7 +22,7 @@ subprojects {
         }
     }
 
-    // Modern architecture configurations configuration targeting clean Java 17 bytecode injection
+    // Standardized Java 17 bytecode alignment across all functional core and feature subprojects
     plugins.withType<org.gradle.api.plugins.JavaPlugin>().configureEach {
         extensions.configure<org.gradle.api.plugins.JavaPluginExtension> {
             toolchain {
