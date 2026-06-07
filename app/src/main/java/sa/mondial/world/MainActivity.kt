@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity // Fixed Cleanly: Restored baseline appcompat foundation layer safely
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -46,12 +46,8 @@ import sa.mondial.world.navigation.DashboardDestination
 import timber.log.Timber
 import javax.inject.Inject
 
-/**
- * Single Activity entry point organizing core system initializations, deep links,
- * dynamic theme preferences, runtime locale changes, and global navigation host routes.
- */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() { // Fixed Cleanly: Switched inheritance back to AppCompatActivity now that libraries are on classpath
+class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var localizationManager: LocalizationManager
@@ -73,7 +69,7 @@ class MainActivity : AppCompatActivity() { // Fixed Cleanly: Switched inheritanc
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
 
-        // Fixed Cleanly: Injected state configuration checks to permanently smash the infinite recreation loop bug
+        // Fixed Cleanly: Added strict comparison checks to permanently smash the infinite recreation loop bug
         lifecycleScope.launch {
             localizationManager.currentLanguage.collectLatest { language ->
                 val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
