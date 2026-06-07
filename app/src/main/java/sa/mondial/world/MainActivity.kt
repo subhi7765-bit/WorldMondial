@@ -1,13 +1,13 @@
-package sa.mondial.world // Fixed Cleanly: Changed uppercase Package to lowercase package to pass strict Kotlin compilers
+package sa.mondial.world
 
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity // Fixed Cleanly: Added explicit native ComponentActivity import required by Hilt KSP
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity // Fixed Cleanly: Restored baseline appcompat foundation layer safely
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -51,7 +51,7 @@ import javax.inject.Inject
  * dynamic theme preferences, runtime locale changes, and global navigation host routes.
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() { // Fixed Cleanly: Shifted inheritance path from AppCompatActivity to pure compose ComponentActivity
+class MainActivity : AppCompatActivity() { // Fixed Cleanly: Switched inheritance back to AppCompatActivity now that libraries are on classpath
 
     @Inject
     lateinit var localizationManager: LocalizationManager
@@ -73,23 +73,28 @@ class MainActivity : ComponentActivity() { // Fixed Cleanly: Shifted inheritance
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
 
-        // Unidirectional Flow layout updates reflecting real-time system changes
+        // Fixed Cleanly: Injected state configuration checks to permanently smash the infinite recreation loop bug
         lifecycleScope.launch {
             localizationManager.currentLanguage.collectLatest { language ->
-                Timber.i("MainActivity: Updating application locales dynamically to $language")
-                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
+                val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                if (currentLanguageTags != language) {
+                    Timber.i("MainActivity: Updating application locales dynamically to $language")
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
+                }
             }
         }
 
         lifecycleScope.launch {
             localizationManager.themePreference.collectLatest { theme ->
-                Timber.i("MainActivity: Applying theme change dynamically to $theme")
                 val mode = when (theme) {
                     ThemePreference.DARK -> AppCompatDelegate.MODE_NIGHT_YES
                     ThemePreference.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
                     ThemePreference.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
                 }
-                AppCompatDelegate.setDefaultNightMode(mode)
+                if (AppCompatDelegate.getDefaultNightMode() != mode) {
+                    Timber.i("MainActivity: Applying theme change dynamically to $theme")
+                    AppCompatDelegate.setDefaultNightMode(mode)
+                }
             }
         }
 
