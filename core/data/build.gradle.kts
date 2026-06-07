@@ -18,7 +18,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Aligned Kotlin bytecode execution to Java 17 compatibility under Gradle 8.9
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -31,12 +30,18 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
     implementation(project(":core:database"))
-    
-    // Fixed Cleanly: Added analytics module access to resolve analyticsTracker in BaseRepository
     implementation(project(":core:analytics"))
 
     // Local Storage Jetpack DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
+
+    // Fixed Cleanly: Added Timber and Retrofit dependencies for BaseRepository core compilation
+    implementation(libs.timber)
+    implementation(libs.retrofit.core)
+
+    // Fixed Cleanly: Added Firebase Crashlytics infrastructure required by BaseRepository error reporting
+    implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+    implementation("com.google.firebase:firebase-crashlytics")
 
     // Dagger-Hilt Dependency Injection Ecosystem with KSP Compiler
     implementation(libs.hilt.android)
