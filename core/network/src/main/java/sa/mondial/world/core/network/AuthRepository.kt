@@ -1,11 +1,12 @@
 package sa.mondial.world.core.network
 
+// Fixed Correctly: Moved all import declarations to the beginning of the file to comply with strict Kotlin syntax
+import javax.inject.Inject
+import javax.inject.Singleton
+
 interface AuthRepository {
     suspend fun refreshToken(): String?
 }
-
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor() : AuthRepository {
