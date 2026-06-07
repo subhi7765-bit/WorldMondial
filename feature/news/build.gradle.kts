@@ -38,8 +38,6 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
     implementation(project(":core:analytics"))
-    
-    // Fixed Cleanly: Added explicit access to network and database modules to resolve NewsRepositoryImpl components via KSP
     implementation(project(":core:network"))
     implementation(project(":core:database"))
 
@@ -53,6 +51,9 @@ dependencies {
     // Enforced flat mapping catalog targets to ensure clean compilation under Gradle 8.9
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
+
+    // Fixed Cleanly: Added Timber logging framework dependency for news components and viewmodel compilation
+    implementation(libs.timber)
 
     // Dagger-Hilt Dependency Injection Ecosystem
     implementation(libs.hilt.android)
