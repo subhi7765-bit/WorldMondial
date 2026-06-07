@@ -46,10 +46,6 @@ import sa.mondial.world.navigation.DashboardDestination
 import timber.log.Timber
 import javax.inject.Inject
 
-/**
- * Single Activity entry point organizing core system initializations, deep links,
- * dynamic theme preferences, runtime locale changes, and global navigation host routes.
- */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -98,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            // Fixed Cleanly: Enforced MaterialTheme initialization wrapping block to prevent typography/color provider runtime crash
             MaterialTheme {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
