@@ -29,10 +29,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -40,6 +42,7 @@ android {
 }
 
 dependencies {
+    // Internal Core Layer Module Dependencies
     implementation(project(":core:common"))
     implementation(project(":core:di"))
     implementation(project(":core:ui"))
@@ -49,20 +52,31 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
+    implementation(project(":core:sync"))
+
+    // Feature Presentation UI Module Dependencies
     implementation(project(":feature:matches"))
     implementation(project(":feature:news"))
     implementation(project(":feature:settings"))
-    implementation(project(":core:sync"))
 
+    // AndroidX Jetpack Compose Presentation Core
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+
+    // Jetpack Modular Navigation Ecosystem & Composition Bindings
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    // Dagger-Hilt Dependency Injection Compiler Ecosystem
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.timber)
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
+    // Production Logging, Serialization, and Background Task Management
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.timber)
+    implementation(libs.androidx.work.runtime)
+
+    // Firebase Centralized Analytics and Crash Reporting Infrastructure
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("com.google.firebase:firebase-crashlytics")
