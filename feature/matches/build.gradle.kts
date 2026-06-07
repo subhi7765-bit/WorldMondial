@@ -38,8 +38,6 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:notifications"))
     implementation(project(":core:analytics"))
-    
-    // Fixed Cleanly: Added remote network and local database components access to resolve MatchesRepositoryImpl parameters via KSP
     implementation(project(":core:network"))
     implementation(project(":core:database"))
 
@@ -50,6 +48,9 @@ dependencies {
     // Jetpack Pagination 3 Integration
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
+
+    // Fixed Cleanly: Added Timber framework logging engine for matches components compilation
+    implementation(libs.timber)
 
     // Dagger-Hilt Dependency Injection Engine
     implementation(libs.hilt.android)
