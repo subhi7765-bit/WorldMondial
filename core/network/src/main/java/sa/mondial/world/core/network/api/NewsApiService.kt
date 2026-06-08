@@ -6,7 +6,6 @@ import sa.mondial.world.core.network.dto.NewsResponseDto
 
 interface NewsApiService {
 
-    // Configured Cleanly: Points directly to NewsAPI standard endpoints filter parameters
     @GET("v2/everything")
     suspend fun getNews(
         @Query("q") query: String = "football cup",
