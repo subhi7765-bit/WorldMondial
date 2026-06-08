@@ -57,7 +57,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":core:sync"))
 
-    // Added Cleanly: Foundational AndroidX AppCompat Library to resolve Theme.AppCompat.DayNight link error
+    // Foundational AndroidX AppCompat Library
     implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Jetpack Compose Libraries
@@ -71,9 +71,11 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.timber)
     
-    // Background Task Management WorkManager
+    // Background Task Management WorkManager & Hilt Integration
     implementation("androidx.work:work-runtime-ktx:2.9.1")
-    
+    implementation("androidx.hilt:hilt-work:1.2.0") // Added Cleanly: Essential Hilt Work runtime dependency
+    ksp("androidx.hilt:hilt-compiler:1.2.0")       // Added Cleanly: Essential Hilt Work processor compiler
+
     // Core SplashScreen API library dependency
     implementation("androidx.core:core-splashscreen:1.0.1")
     
