@@ -17,5 +17,6 @@ data class News(
     val categoryEn: String,
     val readTimeAr: String,
     val readTimeEn: String,
-    val isTrending: Boolean
+    val isTrending: Boolean,
+    val url: String = "" // Fixed Cleanly: Added default parameter extension to safeguard multi-module compilation pipelines
 )
