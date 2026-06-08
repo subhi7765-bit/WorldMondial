@@ -16,11 +16,12 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-// Configured Cleanly: Centralized hardcoded constants for reliable multi-module processing
-private const val FOOTBALL_API_KEY = "cae19e00d5e35743c4328b10c5328a945ba5bea6" 
+// Corrected: Football-Data.org API Key verification configuration
+private const val FOOTBALL_API_KEY = "3615f4ca3c1541bb9af73d1954580f53" 
 private const val MATCH_BASE_URL = "https://api.football-data.org/v4/"
 
-private const val NEWS_API_KEY = "3615f4ca3c1541bb9af73d1954580f53"
+// Corrected: NewsAPI.org sports endpoint credentials alignment
+private const val NEWS_API_KEY = "92c5b14effa14790867afb66abd38903"
 private const val NEWS_BASE_URL = "https://newsapi.org/"
 
 @Qualifier
