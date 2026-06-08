@@ -7,7 +7,9 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.google.services) apply false
-    alias(libs.plugins.google.firebase.crashlytics) apply false // Fixed Cleanly: Added structured catalog alias linkage for Crashlytics alignment
+    
+    // Fixed Cleanly: Corrected the structured library catalog path mapping syntax to completely fix the "Unresolved reference: firebase" build error
+    id("com.google.firebase.crashlytics") version "3.0.1" apply false
 }
 
 subprojects {
