@@ -34,19 +34,16 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
-    // Provide safe layout configuration framework 
     override val workManagerConfiguration: WorkConfiguration
         get() = WorkConfiguration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
 
     override fun onCreate() {
-        super.onCreate() // Hilt injects all properties successfully right here
-
+        super.onCreate()
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
-
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
@@ -98,6 +95,7 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             }
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+            Timber.i("WorldMondialApplication: Global match_channel initialized with high urgency.")
         }
     }
 }
