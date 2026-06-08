@@ -16,11 +16,9 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-// Corrected: Football-Data.org API Key verification configuration
 private const val FOOTBALL_API_KEY = "3615f4ca3c1541bb9af73d1954580f53" 
 private const val MATCH_BASE_URL = "https://api.football-data.org/v4/"
 
-// Corrected: NewsAPI.org sports endpoint credentials alignment
 private const val NEWS_API_KEY = "92c5b14effa14790867afb66abd38903"
 private const val NEWS_BASE_URL = "https://newsapi.org/"
 
@@ -63,6 +61,7 @@ object NetworkModule {
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header("X-Auth-Token", FOOTBALL_API_KEY)
+                    .header("User-Agent", "WorldMondialApp/1.0")
                     .build()
                 chain.proceed(request)
             }.build()
@@ -79,6 +78,7 @@ object NetworkModule {
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header("X-Api-Key", NEWS_API_KEY)
+                    .header("User-Agent", "WorldMondialApp/1.0")
                     .build()
                 chain.proceed(request)
             }.build()
