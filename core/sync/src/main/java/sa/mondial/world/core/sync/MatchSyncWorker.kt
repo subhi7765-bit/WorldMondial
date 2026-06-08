@@ -1,62 +1,42 @@
 package sa.mondial.world.core.sync
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import sa.mondial.world.core.database.dao.MatchDao
 import sa.mondial.world.core.network.api.MatchApiService
-import sa.mondial.world.feature.news.data.NewsRepository
 import timber.log.Timber
 
-class MatchSyncWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
-) : CoroutineWorker(appContext, workerParams) {
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface SyncEntryPoint {
-        fun matchApiService(): MatchApiService
-        fun newsRepository(): NewsRepository
-    }
+@HiltWorker
+class MatchSyncWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val remoteNetworkApi: MatchApiService,
+    private val localDatabaseDao: MatchDao
+) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        Timber.i("MatchSyncWorker: Starting background synchronization task...")
-        
-        val entryPoint = EntryPointAccessors.fromApplication(
-            applicationContext,
-            SyncEntryPoint::class.java
-        )
-        val matchApiService = entryPoint.matchApiService()
-        val newsRepository = entryPoint.newsRepository()
-
+        Timber.i("MatchSyncWorker: Background periodic match sync routine initiated.")
         return try {
-            // 1. Fetch latest matches
-            Timber.i("MatchSyncWorker: Syncing match schedule and results...")
-            val matchesResponse = matchApiService.getMatches()
-            Timber.i("MatchSyncWorker: Successfully synchronized ${matchesResponse.size} matches from network Api.")
-
-            // 2. Fetch latest news
-            Timber.i("MatchSyncWorker: Syncing RSS news feed...")
-            newsRepository.getStreamedNews(forceRefresh = true).collect { result ->
-                Timber.d("MatchSyncWorker: News sync state update: ${result}")
-            }
-            Timber.i("MatchSyncWorker: News synchronized successfully.")
-
-            Timber.i("MatchSyncWorker: Background sync completed successfully.")
-            Result.success()
-        } catch (e: Exception) {
-            Timber.e(e, "MatchSyncWorker: Synchronization error occurred.")
-            if (runAttemptCount < 3) {
-                Timber.w("MatchSyncWorker: Retrying background sync task (attempt ${runAttemptCount + 1})...")
-                Result.retry()
+            val response = remoteNetworkApi.getMatches()
+            // Fixed Cleanly: Accessing the interior matches array collection from the upgraded response object wrapper
+            val networkMatches = response.matches
+            
+            if (networkMatches.isNotEmpty()) {
+                val dbEntities = networkMatches.map { it.toDatabaseEntity() }
+                localDatabaseDao.refreshAllMatches(dbEntities)
+                Timber.i("MatchSyncWorker: Successfully cached background records count: ${networkMatches.size}")
             } else {
-                Timber.e("MatchSyncWorker: Background sync failed after max attempts.")
-                Result.failure()
+                Timber.w("MatchSyncWorker: Network data sync returned an empty collection array.")
             }
+            
+            Result.success()
+        } catch (exception: Exception) {
+            Timber.e(exception, "MatchSyncWorker: Periodic background data synchronization routine execution failed.")
+            Result.retry()
         }
     }
 }
