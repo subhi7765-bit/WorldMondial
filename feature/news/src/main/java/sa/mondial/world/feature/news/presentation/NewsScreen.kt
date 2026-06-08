@@ -72,7 +72,7 @@ fun NewsScreen(
                             NewsCard(
                                 news = newsItem,
                                 isAr = isAr,
-                                onClick = { onNavigateToDetails(newsItem.id) } // Fixed Cleanly: Passed the existing id property which securely holds the verified web destination string
+                                onClick = { onNavigateToDetails(newsItem.url) } // Fixed Cleanly: Explicitly passing the newly added .url parameter stream to launch the browser properly
                             )
                         }
                     }
