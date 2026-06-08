@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import sa.mondial.world.core.data.LocalizationManager
 import sa.mondial.world.core.sync.MatchSyncWorker
+import java.io.File
 import java.util.concurrent.TimeUnit
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -41,7 +42,32 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .build()
 
     override fun onCreate() {
+        // STEP 1: Enforce global Uncaught Exception Handler BEFORE super.onCreate to intercept Hilt/Firebase startup crashes
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val stackTrace = android.util.Log.getStackTraceString(throwable)
+            val logText = "Thread: ${thread.name}\n\n🚨 CRASH LOG REPORT 🚨\n\n$stackTrace"
+            
+            try {
+                // Save the error log directly into the app's externally accessible safe shared storage folder
+                val file = File(getExternalFilesDir(null), "crash_log.txt")
+                file.writeText(logText)
+            } catch (e: Exception) {
+                try {
+                    // Fallback to secondary internal files directory if partition is locked
+                    val file = File(filesDir, "crash_log.txt")
+                    file.writeText(logText)
+                } catch (inner: Exception) {
+                    // Fail silently to prevent complete platform freezing
+                }
+            }
+            
+            // Kill the crashing process cleanly to avoid frozen system white screens
+            android.os.Process.killProcess(android.os.Process.myPid())
+            java.lang.System.exit(10)
+        }
+
         super.onCreate()
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
