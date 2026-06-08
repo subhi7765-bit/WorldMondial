@@ -57,6 +57,9 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":core:sync"))
 
+    // Added Cleanly: Foundational AndroidX AppCompat Library to resolve Theme.AppCompat.DayNight link error
+    implementation("androidx.appcompat:appcompat:1.7.0")
+
     // Jetpack Compose Libraries
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
@@ -71,7 +74,7 @@ dependencies {
     // Background Task Management WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     
-    // Added Cleanly: Mandatory Core SplashScreen API library dependency to resolve Theme.SplashScreen linking error
+    // Core SplashScreen API library dependency
     implementation("androidx.core:core-splashscreen:1.0.1")
     
     // Firebase Ecosystem Delivery Services
