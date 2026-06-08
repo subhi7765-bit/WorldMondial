@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import sa.mondial.world.core.data.LocalizationManager
 import sa.mondial.world.core.sync.MatchSyncWorker
+import java.io.File
 import java.util.concurrent.TimeUnit
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -40,6 +41,20 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .build()
 
     override fun onCreate() {
+        // [صائد الأخطاء التشغيلية] - يوضع كأول سطر لحفظ كراش الواجهات أو الـ Hilt في ملف نصي فوراً
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val stackTrace = android.util.Log.getStackTraceString(throwable)
+            val logText = "🚨 CRASH REPORT 🚨\nThread: ${thread.name}\n\n$stackTrace"
+            try {
+                val file = File(getExternalFilesDir(null), "crash_log.txt")
+                file.writeText(logText)
+            } catch (e: Exception) {
+                // حماية صامتة لمنع تجميد النظام
+            }
+            android.os.Process.killProcess(android.os.Process.myPid())
+            java.lang.System.exit(10)
+        }
+
         super.onCreate()
 
         if (BuildConfig.DEBUG) {
