@@ -41,13 +41,14 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
-        // Read saved language from DataStore asynchronously
         CoroutineScope(Dispatchers.IO).launch {
             val deviceLocale = Locale.getDefault().language
             val defaultLang = if (deviceLocale == "ar" || deviceLocale == "en") deviceLocale else "en"
@@ -82,7 +83,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             ExistingPeriodicWorkPolicy.KEEP,
             syncWorkRequest
         )
-        Timber.i("WorldMondialApplication: Enqueued unique periodic MatchSyncWorker every 6 hours.")
     }
 
     private fun createGlobalNotificationChannel() {
@@ -95,7 +95,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             }
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
-            Timber.i("WorldMondialApplication: Global match_channel initialized with high urgency.")
         }
     }
 }
