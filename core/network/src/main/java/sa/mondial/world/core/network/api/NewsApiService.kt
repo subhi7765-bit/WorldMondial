@@ -8,7 +8,7 @@ interface NewsApiService {
 
     @GET("v2/everything")
     suspend fun getNews(
-        @Query("q") query: String = "football cup",
+        @Query("q") query: String = "football OR كورة OR كأس العالم",
         @Query("language") language: String = "ar",
         @Query("sortBy") sortBy: String = "publishedAt"
     ): NewsResponseDto
