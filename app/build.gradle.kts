@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.google.services)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -24,21 +24,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs["debug"]
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -46,7 +40,7 @@ android {
 }
 
 dependencies {
-    // Internal Core Layer Module Dependencies
+    // Internal Modules Architecture 
     implementation(project(":core:common"))
     implementation(project(":core:di"))
     implementation(project(":core:ui"))
@@ -57,39 +51,32 @@ dependencies {
     implementation(project(":core:analytics"))
     implementation(project(":core:notifications"))
     
-    // Fixed Cleanly: Corrected the absolute path from ':project:sync' back to ':core:sync' to resolve the UnknownProjectException
-    implementation(project(":core:sync"))
-
-    // Feature Presentation UI Module Dependencies
+    // Feature & Presentation Wiring
     implementation(project(":feature:matches"))
     implementation(project(":feature:news"))
     implementation(project(":feature:settings"))
+    implementation(project(":core:sync"))
 
-    // AndroidX Jetpack Compose Presentation Core
+    // Jetpack Compose Libraries
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
-    implementation("androidx.appcompat:appcompat:1.7.0")
-
-    // Jetpack Modular Navigation Ecosystem & Composition Bindings
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.hilt.navigation.compose)
-
-    // Dagger-Hilt Dependency Injection Compiler Ecosystem
+    implementation(libs.kotlinx.serialization.json)
+    
+    // Dependency Injection & Logging
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-
-    // AndroidX Hilt Work integration libraries to resolve HiltWorkerFactory on app classpath
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
-
-    // Production Logging, Serialization, and Background Task Management
-    implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
-    implementation(libs.androidx.work.runtime)
-
-    // Firebase Centralized Analytics and Crash Reporting Infrastructure
+    
+    // Background Task Management WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    
+    // Added Cleanly: Mandatory Core SplashScreen API library dependency to resolve Theme.SplashScreen linking error
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    
+    // Firebase Ecosystem Delivery Services
+    implementation("com.google.firebase:firebase-messaging:24.0.0")
+    implementation("com.google.firebase:firebase-crashlytics:19.0.0")
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
-    implementation("com.google.firebase:firebase-messaging-ktx")
-    implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-analytics-ktx")
 }
