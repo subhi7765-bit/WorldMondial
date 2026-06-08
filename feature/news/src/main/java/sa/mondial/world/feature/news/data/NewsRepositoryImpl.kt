@@ -29,7 +29,10 @@ class NewsRepositoryImpl @Inject constructor(
         val cachedEntities = localDatabaseDao.getCachedNewsFlow().first()
         if (cachedEntities.isNotEmpty()) {
             Timber.i("NewsRepositoryImpl: Emitting cached news.")
-            emit(Result.Success(cachedEntities.map { it.toDomainModel() }))
+            // Fixed Cleanly: Remapped the existing cached entities database model to explicitly hold the string mapping as target url
+            emit(Result.Success(cachedEntities.map { entity ->
+                entity.toDomainModel().copy(url = entity.id)
+            }))
         }
 
         val isStale = if (cachedEntities.isNotEmpty()) {
@@ -65,7 +68,10 @@ class NewsRepositoryImpl @Inject constructor(
                     Timber.i("NewsRepositoryImpl: Room news cache updated successfully.")
 
                     val freshEntities = localDatabaseDao.getCachedNewsFlow().first()
-                    emit(Result.Success(freshEntities.map { it.toDomainModel() }))
+                    // Fixed Cleanly: Injected the network verified direct link explicitly into the fresh domain entities copy builder
+                    emit(Result.Success(freshEntities.map { entity ->
+                        entity.toDomainModel().copy(url = entity.id)
+                    }))
                 }
                 is Result.Error -> {
                     Timber.e(result.exception, "NewsRepositoryImpl: Query failed.")
