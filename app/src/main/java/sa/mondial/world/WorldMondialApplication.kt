@@ -41,15 +41,15 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .build()
 
     override fun onCreate() {
-        // [صائد الأخطاء التشغيلية] - يوضع كأول سطر لحفظ كراش الواجهات أو الـ Hilt في ملف نصي فوراً
+        // Production Runtime Crash Interceptor Engine
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             val stackTrace = android.util.Log.getStackTraceString(throwable)
-            val logText = "🚨 CRASH REPORT 🚨\nThread: ${thread.name}\n\n$stackTrace"
+            val logText = "CRASH REPORT\nThread: ${thread.name}\n\n$stackTrace"
             try {
                 val file = File(getExternalFilesDir(null), "crash_log.txt")
                 file.writeText(logText)
             } catch (e: Exception) {
-                // حماية صامتة لمنع تجميد النظام
+                // Fail-safe fallback to prevent blocking native OS handler
             }
             android.os.Process.killProcess(android.os.Process.myPid())
             java.lang.System.exit(10)
@@ -76,7 +76,7 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
                 val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
                 if (currentLanguageTags != savedLanguage) {
                     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
-                    Timber.i("WorldMondialApplication: Asynchronously set application locale to $savedLanguage")
+                    Timber.i("WorldMondialApplication: Locale set to $savedLanguage")
                 }
             }
         }
