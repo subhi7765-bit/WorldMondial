@@ -6,11 +6,13 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import androidx.work.Configuration as WorkConfiguration
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.hilt.work.HiltWorkerFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -24,16 +26,27 @@ import java.util.Locale
 import javax.inject.Inject
 
 @HiltAndroidApp
-class WorldMondialApplication : Application() {
+class WorldMondialApplication : Application(), WorkConfiguration.Provider {
 
     @Inject
     lateinit var localizationManager: LocalizationManager
 
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    // Provide safe layout configuration framework 
+    override val workManagerConfiguration: WorkConfiguration
+        get() = WorkConfiguration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
     override fun onCreate() {
-        super.onCreate()
+        super.onCreate() // Hilt injects all properties successfully right here
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
         createGlobalNotificationChannel()
         enqueueBackgroundSync()
 
