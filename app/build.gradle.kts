@@ -71,10 +71,13 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.timber)
     
+    // Added Cleanly: Mandatory Hilt Navigation Compose dependency to resolve hiltViewModel() unresolved reference in MainActivity
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    
     // Background Task Management WorkManager & Hilt Integration
     implementation("androidx.work:work-runtime-ktx:2.9.1")
-    implementation("androidx.hilt:hilt-work:1.2.0") // Added Cleanly: Essential Hilt Work runtime dependency
-    ksp("androidx.hilt:hilt-compiler:1.2.0")       // Added Cleanly: Essential Hilt Work processor compiler
+    implementation("androidx.hilt:hilt-work:1.2.0") // Essential Hilt Work runtime dependency
+    ksp("androidx.hilt:hilt-compiler:1.2.0")       // Essential Hilt Work processor compiler
 
     // Core SplashScreen API library dependency
     implementation("androidx.core:core-splashscreen:1.0.1")
