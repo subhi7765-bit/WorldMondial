@@ -19,10 +19,6 @@ import androidx.compose.ui.unit.dp
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.News
 
-/**
- * Main Composable representing the Mondial localized news feed screen.
- * Implements standard Unidirectional Data Flow using the clean Material 3 design pipeline.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(
@@ -51,7 +47,6 @@ fun NewsScreen(
         modifier = modifier
     ) { innerPadding ->
 
-        // Built-in stable native Material 3 pull-to-refresh structure wrapper
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -77,7 +72,7 @@ fun NewsScreen(
                             NewsCard(
                                 news = newsItem,
                                 isAr = isAr,
-                                onClick = { onNavigateToDetails(newsItem.id) }
+                                onClick = { onNavigateToDetails(newsItem.url) } // Fixed Cleanly: Passed the actual article source web URL destination instead of the local entity ID mapping string
                             )
                         }
                     }
@@ -115,7 +110,6 @@ fun NewsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Localized Category Badge Widget
             Box(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
@@ -130,7 +124,6 @@ fun NewsCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Localized Dynamic Title
             Text(
                 text = if (isAr) news.titleAr else news.titleEn,
                 style = MaterialTheme.typography.titleMedium,
@@ -139,7 +132,6 @@ fun NewsCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Footer Row mapping read times and metadata flags
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
