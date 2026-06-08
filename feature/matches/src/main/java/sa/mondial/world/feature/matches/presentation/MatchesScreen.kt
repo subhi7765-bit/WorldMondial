@@ -24,7 +24,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
-import com.valentinilk.shimmer.ShimmerBounds // Fixed Cleanly: Added strict ShimmerBounds import verification
+import com.valentinilk.shimmer.ShimmerBounds
 import kotlinx.coroutines.delay
 import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.domain.MatchStatus
@@ -33,9 +33,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/**
- * Main dashboard display listing Mondial matches with full Paging 3 support and an integrated refresh engine.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchesScreen(
@@ -51,6 +48,11 @@ fun MatchesScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
 
+    // Trigger an asynchronous live data sync immediately upon entering this screen
+    LaunchedEffect(Unit) {
+        viewModel.loadMondialMatches(forceRefresh = false)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -64,7 +66,6 @@ fun MatchesScreen(
         modifier = modifier
     ) { innerPadding ->
 
-        // Native Material 3 pull-to-refresh structure wrapper
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -109,7 +110,6 @@ fun MatchesScreen(
                             }
                         }
 
-                        // Appending indicators for progressive layout pages
                         if (pagedMatches.loadState.append is LoadState.Loading) {
                             item {
                                 Box(
@@ -126,7 +126,6 @@ fun MatchesScreen(
                 }
             }
 
-            // Material 3 loading container bound tightly over the Box scope hierarchy
             PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
@@ -234,7 +233,6 @@ fun MatchCard(
                 )
             }
 
-            // Real-time counter for match kickoffs
             if (match.matchStatus == MatchStatus.UPCOMING) {
                 val remainingMillis by produceState(
                     initialValue = match.utcTime.toEpochMilli() - System.currentTimeMillis(),
@@ -274,7 +272,6 @@ fun MatchCard(
                 }
             }
 
-            // Dynamic Squad toggles matching standard design targets
             var expandText = if (isAr) "عرض التشكيلة الرسمية" else "Official Lineups"
             if (isExpanded) {
                 expandText = if (isAr) "إخفاء التشكيل" else "Hide Squad"
@@ -332,7 +329,6 @@ fun MatchCard(
 
 @Composable
 fun ShimmerMatchListLoader(modifier: Modifier = Modifier) {
-    // Fixed Cleanly: Added clear declaration for strict view boundaries alignment
     val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
     Column(
         modifier = modifier
