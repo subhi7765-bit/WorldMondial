@@ -3,7 +3,7 @@ package sa.mondial.world
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri // Added Cleanly: Essential native component import for parsing article web URLs
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -186,12 +186,15 @@ class MainActivity : AppCompatActivity() {
                             NewsScreen(
                                 viewModel = viewModel,
                                 onNavigateToDetails = { articleUrl ->
-                                    // Fixed Cleanly: Resolved copy-paste template routing bug to open full articles inside native secure browser intents
                                     try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(articleUrl))
-                                        startActivity(intent)
+                                        // Fixed Cleanly: Added explicit Activity context mapping and NEW_TASK flag for flawless external browser intent loading
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(articleUrl)).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        this@MainActivity.startActivity(intent)
+                                        Timber.i("MainActivity: Browser intent dispatched flawlessly for URL: $articleUrl")
                                     } catch (exception: Exception) {
-                                        Timber.e(exception, "MainActivity: Failed to launch browser intent for article navigation link link")
+                                        Timber.e(exception, "MainActivity: External intent execution crashed or blocked silently")
                                     }
                                 }
                             )
