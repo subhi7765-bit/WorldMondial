@@ -21,10 +21,6 @@ import timber.log.Timber
 import java.time.Instant
 import javax.inject.Inject
 
-/**
- * Enterprise production repository featuring Cache-Then-Network and Paging 3 synchronization.
- * Room DB serves as Single Source of Truth, keeping state reactive and responsive offline.
- */
 class MatchesRepositoryImpl @Inject constructor(
     private val localDatabaseDao: MatchDao,
     private val remoteKeysDao: sa.mondial.world.core.database.dao.MatchRemoteKeysDao,
@@ -41,10 +37,11 @@ class MatchesRepositoryImpl @Inject constructor(
             try {
                 Timber.i("MatchesRepository: Initializing network sync stream...")
                 val networkResponse = remoteNetworkApi.getMatches()
-                val dbEntities = networkResponse.map { it.toDatabaseEntity() }
+                // Fixed Cleanly: Extracted the interior nested matches array collection from the response object wrapper
+                val dbEntities = networkResponse.matches.map { it.toDatabaseEntity() }
                 localDatabaseDao.refreshAllMatches(dbEntities)
                 Timber.i("MatchesRepository: Room Cache updated successfully.")
-                emit(Result.Success(emptyList<Match>())) // Sentinel completion
+                emit(Result.Success(emptyList<Match>()))
             } catch (exception: Throwable) {
                 Timber.e(exception, "MatchesRepository: Parallel network sync failed.")
                 emit(Result.Error(exception))
@@ -90,8 +87,7 @@ class MatchesRepositoryImpl @Inject constructor(
     override suspend fun getMatchDetails(matchId: String): sa.mondial.world.core.domain.MatchDetails {
         return withContext(ioDispatcher) {
             try {
-                // Try fetching fresh data from the dedicated network endpoint
-                Timber.i("MatchesRepositoryImpl: Fetching match details from /matches/$matchId/details endpoint")
+                Timber.i("MatchesRepositoryImpl: Fetching match details from endpoint")
                 val remoteDto = remoteNetworkApi.getMatchDetails(matchId)
                 val dbEntity = remoteDto.toDatabaseEntity(timestampMs = System.currentTimeMillis())
                 localDatabaseDao.insertMatchDetails(dbEntity)
@@ -100,7 +96,7 @@ class MatchesRepositoryImpl @Inject constructor(
                 Timber.e(throwable, "MatchesRepositoryImpl: Network fetch failed. Attempting Room DB SOT fallback.")
                 val cached = localDatabaseDao.getMatchDetails(matchId)
                 if (cached != null) {
-                    Timber.i("MatchesRepositoryImpl: Room Cache HIT for details of $matchId, last updated at ${cached.timestampMs}")
+                    Timber.i("MatchesRepositoryImpl: Room Cache HIT for details of $matchId")
                     cached.toDomainModel()
                 } else {
                     Timber.e("MatchesRepositoryImpl: Room Cache MISS for details of $matchId.")
