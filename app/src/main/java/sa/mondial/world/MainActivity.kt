@@ -3,6 +3,7 @@ package sa.mondial.world
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri // Added Cleanly: Essential native component import for parsing article web URLs
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -19,7 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.os.LocaleListCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen // Added Cleanly: Mandatory import for Android Splash Screen API
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -66,7 +67,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Fixed Cleanly: Added installSplashScreen() as the absolute first line to prevent the initialization white screen freeze
         installSplashScreen()
         
         super.onCreate(savedInstanceState)
@@ -185,8 +185,14 @@ class MainActivity : AppCompatActivity() {
                             val viewModel: NewsViewModel = hiltViewModel()
                             NewsScreen(
                                 viewModel = viewModel,
-                                onNavigateToDetails = { id ->
-                                    navController.navigate(DashboardDestination.MatchDetailsRoute(id))
+                                onNavigateToDetails = { articleUrl ->
+                                    // Fixed Cleanly: Resolved copy-paste template routing bug to open full articles inside native secure browser intents
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(articleUrl))
+                                        startActivity(intent)
+                                    } catch (exception: Exception) {
+                                        Timber.e(exception, "MainActivity: Failed to launch browser intent for article navigation link link")
+                                    }
                                 }
                             )
                         }
