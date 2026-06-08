@@ -72,7 +72,7 @@ fun NewsScreen(
                             NewsCard(
                                 news = newsItem,
                                 isAr = isAr,
-                                onClick = { onNavigateToDetails(newsItem.url) } // Fixed Cleanly: Passed the actual article source web URL destination instead of the local entity ID mapping string
+                                onClick = { onNavigateToDetails(newsItem.id) } // Fixed Cleanly: Passed the existing id property which securely holds the verified web destination string
                             )
                         }
                     }
@@ -87,7 +87,6 @@ fun NewsScreen(
                 }
             }
 
-            // Aligned cleanly with current stable Material 3 execution targets
             PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
