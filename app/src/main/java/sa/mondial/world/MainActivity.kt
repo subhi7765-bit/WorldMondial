@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.os.LocaleListCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen // Added Cleanly: Mandatory import for Android Splash Screen API
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -65,6 +66,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Fixed Cleanly: Added installSplashScreen() as the absolute first line to prevent the initialization white screen freeze
+        installSplashScreen()
+        
         super.onCreate(savedInstanceState)
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
