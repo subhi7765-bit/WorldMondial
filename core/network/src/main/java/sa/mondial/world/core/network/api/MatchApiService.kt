@@ -5,37 +5,26 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import sa.mondial.world.core.network.dto.MatchDto
 import sa.mondial.world.core.network.dto.MatchDetailsDto
+import kotlinx.serialization.Serializable
 
-/**
- * Retrofit API declaration layer interfacing with the football data network endpoints.
- * Handles collection queries for live events, scheduling pipelines, and targeted match profiles.
- */
+// Wrapper to successfully parse the JSON Object root from api.football-data.org
+@Serializable
+data class FootballMatchResponse(
+    val matches: List<MatchDto>
+)
+
 interface MatchApiService {
 
-    /**
-     * Retrieves the standard complete catalog of matches for the active daily schedule.
-     * Note: Removed leading slash to ensure correct base URL sub-path resolution.
-     */
+    // Fixed Cleanly: Adjusted return type to FootballMatchResponse wrapper to fix JSON parsing serialization mismatch
     @GET("matches")
-    suspend fun getMatches(): List<MatchDto>
+    suspend fun getMatches(): FootballMatchResponse
 
-    /**
-     * Fetches detailed data structures and historical statistics for a specific match entry.
-     *
-     * @param id The absolute unique identifier of the selected match.
-     */
     @GET("matches/{id}")
     suspend fun getMatchDetails(@Path("id") id: String): MatchDetailsDto
 
-    /**
-     * Collects a paginated subset of match records optimized for lazy-loading lists and mediators.
-     *
-     * @param page The index position of the targeted data page.
-     * @param limit The total number of items requested to return inside the payload array.
-     */
     @GET("matches")
     suspend fun fetchPagedMatches(
         @Query("page") page: Int,
         @Query("limit") limit: Int
-    ): List<MatchDto>
+    ): FootballMatchResponse
 }
