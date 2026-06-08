@@ -13,9 +13,6 @@ import sa.mondial.world.core.database.entity.MatchRemoteKeys
 import sa.mondial.world.core.network.api.MatchApiService
 import timber.log.Timber
 
-/**
- * Enterprise-grade Room backed RemoteMediator coordinating local SOT with pagination queries.
- */
 @OptIn(ExperimentalPagingApi::class)
 class MatchRemoteMediator(
     private val localDatabaseDao: MatchDao,
@@ -58,7 +55,9 @@ class MatchRemoteMediator(
 
             Timber.i("MatchRemoteMediator: Synced network results loaded for loadType=$loadType page=$page")
             
-            val remoteDtos = remoteNetworkApi.fetchPagedMatches(page = page, limit = state.config.pageSize)
+            // Fixed Cleanly: Parsed encapsulated wrapper response and extracted the interior structural domain list array safely
+            val apiResponse = remoteNetworkApi.fetchPagedMatches(page = page, limit = state.config.pageSize)
+            val remoteDtos = apiResponse.matches
             val endOfPaginationReached = remoteDtos.isEmpty()
 
             val mappedEntities = remoteDtos.map { it.toDatabaseEntity() }
@@ -85,7 +84,7 @@ class MatchRemoteMediator(
         } catch (exception: Exception) {
             Timber.e(exception, "MatchRemoteMediator: Paginated network execution failed")
             if (loadType == LoadType.REFRESH) {
-                MediatorResult.Error(java.io.IOException("Mondial Service Sync Failed: Unable to retrieve the initial match pages. Please check internet connection.", exception))
+                MediatorResult.Error(java.io.IOException("Mondial Service Sync Failed. Please check connection.", exception))
             } else {
                 MediatorResult.Error(exception)
             }
@@ -113,9 +112,6 @@ class MatchRemoteMediator(
     }
 }
 
-/**
- * Strict database backup PagingSource implementation sourcing Room cache dynamically.
- */
 class MatchDbPagingSource(
     private val localDatabaseDao: MatchDao
 ) : PagingSource<Int, DbMatchEntity>() {
