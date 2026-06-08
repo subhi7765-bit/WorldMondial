@@ -101,7 +101,6 @@ class MainActivity : AppCompatActivity() {
 
                 LaunchedEffect(navController) {
                     deepLinkFlow.collect { matchId ->
-                        Timber.i("MainActivity: Navigating to MatchDetailsRoute for deep-linked matchId=$matchId")
                         navController.navigate(DashboardDestination.MatchDetailsRoute(matchId)) {
                             launchSingleTop = true
                         }
@@ -196,7 +195,6 @@ class MainActivity : AppCompatActivity() {
                         composable<DashboardDestination.MatchDetailsRoute> { backStackEntry ->
                             val route = backStackEntry.toRoute<DashboardDestination.MatchDetailsRoute>()
                             val matchId = route.matchId
-                            Timber.i("MainActivity: Extracted matchId=$matchId from MatchDetailsRoute route wrapper")
                             val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
                             MatchDetailsScreen(
                                 viewModel = viewModel,
@@ -222,7 +220,6 @@ class MainActivity : AppCompatActivity() {
         if (uri != null && uri.scheme == "mondial" && uri.host == "match") {
             val matchId = uri.getQueryParameter("matchId")
             if (!matchId.isNullOrEmpty()) {
-                Timber.i("MainActivity: Extracted matchId from deep link: $matchId")
                 lifecycleScope.launch {
                     deepLinkFlow.emit(matchId)
                 }
@@ -232,23 +229,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkAndRequestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            when {
-                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
-                    Timber.i("MainActivity: POST_NOTIFICATIONS permission already granted.")
-                }
-                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
-                    android.app.AlertDialog.Builder(this)
-                        .setTitle("Notification Permission Required")
-                        .setMessage("This app needs notification access to send you live goal alerts and match starting warnings.")
-                        .setPositiveButton("Allow") { _, _ ->
-                            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                        .setNegativeButton("No Thanks", null)
-                        .show()
-                }
-                else -> {
-                    requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
