@@ -12,36 +12,49 @@ android {
 
     defaultConfig {
         minSdk = 26
+
+        testInstrumentationRunner = "sa.mondial.world.core.testing.CustomTestRunner"
+        consumerProguardFiles("consumer-rules.pro")
+
+        // Read API keys and Base URLs directly from GitHub Actions Environment Variables
+        val footballApiKey = System.getenv("FOOTBALL_API_KEY") ?: "MISSING_KEY"
+        val newsApiKey = System.getenv("NEWS_API_KEY") ?: "MISSING_KEY"
+        val footballBaseUrl = "https://api.football-data.org/v4/"
+        val newsBaseUrl = "https://newsapi.org/v2/"
+
+        // Inject variables into BuildConfig securely
+        buildConfigField("String", "FOOTBALL_API_KEY", "\"$footballApiKey\"")
+        buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
+        buildConfigField("String", "FOOTBALL_BASE_URL", "\"$footballBaseUrl\"")
+        buildConfigField("String", "NEWS_BASE_URL", "\"$newsBaseUrl\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
 }
 
 dependencies {
-    // Internal Architectural Layer Dependencies
     implementation(project(":core:common"))
-    
-    // Fixed Cleanly: Added database and domain module access for DTO entity mapping
-    implementation(project(":core:database"))
     implementation(project(":core:domain"))
 
-    // Type-Safe REST Remote Network Layer Client & Converters
-    implementation(libs.retrofit.core)
+    implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+
     implementation(libs.kotlinx.serialization.json)
 
-    // Fixed Cleanly: Added Timber framework dependency for TokenAuthenticator logging
-    implementation(libs.timber)
-
-    // Dagger-Hilt Dependency Injection Ecosystem with KSP Compiler
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    implementation(libs.timber)
 }
