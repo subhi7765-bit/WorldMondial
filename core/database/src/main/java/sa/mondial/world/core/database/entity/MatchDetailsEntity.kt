@@ -64,7 +64,8 @@ data class MatchDetailsEntity(
             awayStartingXI = awayStartingXI,
             awaySubstitutes = awaySubstitutes,
             timelineEventsAr = timelineEventsAr,
-            timelineEventsEn = timelineEventsEn
+            timelineEventsEn = timelineEventsEn,
+            lastSyncTimeMs = lastUpdated 
         )
     }
 }
