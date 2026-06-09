@@ -30,53 +30,55 @@ fun SettingsScreen(
     val theme by viewModel.themePreference.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     
-    // Fixed Cleanly: Instantiated a rememberScrollState to govern the vertical scrolling gesture lifecycle
     val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(id = R.string.settings_title), fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = stringResource(id = R.string.settings_title), 
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), 
-                    titleContentColor = Color(0xFFD4AF37) 
+                    containerColor = Color.Transparent, 
+                    titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
         containerColor = Color.Transparent, 
         modifier = modifier
     ) { innerPadding ->
-        // Fixed Cleanly: Added .verticalScroll(scrollState) component to enable smooth up/down dragging mechanics
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Language Selection Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(id = R.string.language),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
                 ) {
-                    Column(
-                        modifier = Modifier.selectableGroup()
-                    ) {
+                    Column(modifier = Modifier.selectableGroup()) {
                         LanguageOption(
                             label = stringResource(id = R.string.language_english),
                             selected = language == "en",
                             onClick = { viewModel.setLanguage("en") }
                         )
-                        HorizontalDivider(color = Color(0x1AFFFFFF))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                         LanguageOption(
                             label = stringResource(id = R.string.language_arabic),
                             selected = language == "ar",
@@ -86,34 +88,33 @@ fun SettingsScreen(
                 }
             }
 
-            // Theme Selection Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(id = R.string.theme),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
                 ) {
-                    Column(
-                        modifier = Modifier.selectableGroup()
-                    ) {
+                    Column(modifier = Modifier.selectableGroup()) {
                         ThemeOption(
                             label = stringResource(id = R.string.theme_light),
                             selected = theme == ThemePreference.LIGHT,
                             onClick = { viewModel.setThemePreference(ThemePreference.LIGHT) }
                         )
-                        HorizontalDivider(color = Color(0x1AFFFFFF))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                         ThemeOption(
                             label = stringResource(id = R.string.theme_dark),
                             selected = theme == ThemePreference.DARK,
                             onClick = { viewModel.setThemePreference(ThemePreference.DARK) }
                         )
-                        HorizontalDivider(color = Color(0x1AFFFFFF))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                         ThemeOption(
                             label = stringResource(id = R.string.theme_system),
                             selected = theme == ThemePreference.SYSTEM,
@@ -123,26 +124,25 @@ fun SettingsScreen(
                 }
             }
 
-            // Notification Switch Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(id = R.string.notifications),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
-                            .semantics {
-                                role = Role.Switch
-                            },
+                            .semantics { role = Role.Switch },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -151,21 +151,23 @@ fun SettingsScreen(
                                 text = stringResource(id = R.string.live_alerts),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = stringResource(id = R.string.live_alerts_desc),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF94A3B8)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
                         Switch(
                             checked = notificationsEnabled,
                             onCheckedChange = { viewModel.toggleNotifications(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color(0xFFD4AF37),
-                                checkedTrackColor = Color(0xFF1E293B)
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         )
                     }
@@ -196,13 +198,16 @@ fun LanguageOption(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
         RadioButton(
             selected = selected,
             onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFD4AF37), unselectedColor = Color.Gray)
+            colors = RadioButtonDefaults.colors(
+                selectedColor = MaterialTheme.colorScheme.primary,
+                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
     }
 }
@@ -228,13 +233,16 @@ fun ThemeOption(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
         RadioButton(
             selected = selected,
             onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFD4AF37), unselectedColor = Color.Gray)
+            colors = RadioButtonDefaults.colors(
+                selectedColor = MaterialTheme.colorScheme.primary,
+                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
     }
 }
