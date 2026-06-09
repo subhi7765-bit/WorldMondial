@@ -3,9 +3,6 @@ package sa.mondial.world.core.domain
 import java.time.Instant
 import kotlinx.serialization.Serializable
 
-/**
- * Domain-layer model representing Lineups and formations parameters.
- */
 @Serializable
 data class LineupPlayer(
     val nameAr: String,
@@ -17,10 +14,6 @@ data class LineupPlayer(
     val isGoalkeeper: Boolean = false
 )
 
-/**
- * Domain-layer model representing comprehensive match-specific metrics.
- * Designed to separate general match metrics from rich squad line-ups.
- */
 data class MatchDetails(
     val id: String,
     val homeTeamNameAr: String,
@@ -44,5 +37,6 @@ data class MatchDetails(
     val awayStartingXI: List<LineupPlayer>,
     val awaySubstitutes: List<LineupPlayer>,
     val timelineEventsAr: List<String>,
-    val timelineEventsEn: List<String>
+    val timelineEventsEn: List<String>,
+    val lastSyncTimeMs: Long = 0L
 )
