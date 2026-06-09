@@ -8,13 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import sa.mondial.world.feature.settings.R // Fixed Cleanly: Diverted import from core application R to local isolated feature module resource R
+import sa.mondial.world.feature.settings.R 
 import sa.mondial.world.core.data.ThemePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,12 +31,14 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(id = R.string.settings_title)) },
+                title = { Text(text = stringResource(id = R.string.settings_title), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = Color(0xE6111C24), // Modern Dark Obsidian Luxury Top Bar
+                    titleContentColor = Color(0xFFD4AF37) // Premium Golden Title Text
                 )
             )
         },
+        containerColor = Color.Transparent, // Ensures background image shows cleanly
         modifier = modifier
     ) { innerPadding ->
         Column(
@@ -51,11 +54,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.language),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color(0xFFD4AF37) // Golden Header Accent
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
                 ) {
                     Column(
                         modifier = Modifier.selectableGroup()
@@ -65,7 +69,7 @@ fun SettingsScreen(
                             selected = language == "en",
                             onClick = { viewModel.setLanguage("en") }
                         )
-                        HorizontalDivider()
+                        HorizontalDivider(color = Color(0x1AFFFFFF))
                         LanguageOption(
                             label = stringResource(id = R.string.language_arabic),
                             selected = language == "ar",
@@ -81,11 +85,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.theme),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color(0xFFD4AF37) // Golden Header Accent
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
                 ) {
                     Column(
                         modifier = Modifier.selectableGroup()
@@ -95,13 +100,13 @@ fun SettingsScreen(
                             selected = theme == ThemePreference.LIGHT,
                             onClick = { viewModel.setThemePreference(ThemePreference.LIGHT) }
                         )
-                        HorizontalDivider()
+                        HorizontalDivider(color = Color(0x1AFFFFFF))
                         ThemeOption(
                             label = stringResource(id = R.string.theme_dark),
                             selected = theme == ThemePreference.DARK,
                             onClick = { viewModel.setThemePreference(ThemePreference.DARK) }
                         )
-                        HorizontalDivider()
+                        HorizontalDivider(color = Color(0x1AFFFFFF))
                         ThemeOption(
                             label = stringResource(id = R.string.theme_system),
                             selected = theme == ThemePreference.SYSTEM,
@@ -117,11 +122,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.notifications),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color(0xFFD4AF37) // Golden Header Accent
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
                 ) {
                     Row(
                         modifier = Modifier
@@ -137,18 +143,23 @@ fun SettingsScreen(
                             Text(
                                 text = stringResource(id = R.string.live_alerts),
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
                             Text(
                                 text = stringResource(id = R.string.live_alerts_desc),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF94A3B8) // Soft readable slate gray text
                             )
                         }
 
                         Switch(
                             checked = notificationsEnabled,
-                            onCheckedChange = { viewModel.toggleNotifications(it) }
+                            onCheckedChange = { viewModel.toggleNotifications(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFD4AF37),
+                                checkedTrackColor = Color(0xFF1E293B)
+                            )
                         )
                     }
                 }
@@ -178,11 +189,13 @@ fun LanguageOption(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
+            color = Color.White,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
         RadioButton(
             selected = selected,
-            onClick = onClick
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFD4AF37), unselectedColor = Color.Gray)
         )
     }
 }
@@ -208,11 +221,13 @@ fun ThemeOption(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
+            color = Color.White,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
         RadioButton(
             selected = selected,
-            onClick = onClick
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFD4AF37), unselectedColor = Color.Gray)
         )
     }
 }
