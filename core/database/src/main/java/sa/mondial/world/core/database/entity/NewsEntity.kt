@@ -35,7 +35,8 @@ data class NewsEntity(
             categoryEn = categoryEn ?: "Flash News",
             readTimeAr = readTimeAr ?: "قراءة في 4 دقائق",
             readTimeEn = readTimeEn ?: "4 min read",
-            isTrending = isTrending
+            isTrending = isTrending,
+            url = id // Fixed Cleanly: Extracted the stored secure website intent destination link directly from the Primary Key boundary
         )
     }
 }
