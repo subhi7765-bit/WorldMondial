@@ -1,13 +1,17 @@
 package sa.mondial.world.feature.news.presentation
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
@@ -19,9 +23,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import sa.mondial.world.core.common.UiState
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.shimmer
+import com.valentinilk.shimmer.ShimmerBounds
 import sa.mondial.world.core.domain.News
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,28 +43,37 @@ fun NewsScreen(
     onNavigateToDetails: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val language by viewModel.currentLanguage.collectAsState()
     val isAr = language == "ar"
 
     val listState = rememberLazyListState()
+    val pagedNews = viewModel.pagedNewsFlow.collectAsLazyPagingItems()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadNews(forceRefresh = false)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "أخبار" else "News", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = if (isAr) "آخر الأخبار" else "Latest News",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), 
-                    titleContentColor = Color(0xFFD4AF37) 
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
-        containerColor = Color.Transparent, 
+        containerColor = Color.Transparent,
         modifier = modifier
     ) { innerPadding ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -59,36 +81,60 @@ fun NewsScreen(
                 .pullToRefresh(
                     isRefreshing = isRefreshing,
                     state = pullToRefreshState,
-                    onRefresh = { viewModel.loadMondialNews(forceRefresh = true) }
+                    onRefresh = {
+                        viewModel.loadNews(forceRefresh = true)
+                        pagedNews.refresh()
+                    }
                 )
         ) {
-            when (val state = uiState) {
-                is UiState.Loading -> {
-                    ShimmerNewsLoader()
+            when {
+                pagedNews.loadState.refresh is LoadState.Loading -> {
+                    NewsShimmerLoader()
                 }
-                is UiState.Success -> {
+                pagedNews.loadState.refresh is LoadState.Error -> {
+                    val error = (pagedNews.loadState.refresh as LoadState.Error).error
+                    NewsErrorState(
+                        message = error.localizedMessage ?: "Network Sync Error",
+                        isAr = isAr,
+                        onRetry = { pagedNews.retry() }
+                    )
+                }
+                pagedNews.itemCount == 0 -> {
+                    NewsEmptyState(isAr = isAr)
+                }
+                else -> {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(state.data, key = { it.id }) { newsItem ->
-                            NewsCard(
-                                news = newsItem,
-                                isAr = isAr,
-                                onClick = { onNavigateToDetails(newsItem.url) }
-                            )
+                        items(pagedNews.itemCount) { index ->
+                            pagedNews[index]?.let { article ->
+                                NewsCard(
+                                    article = article,
+                                    isAr = isAr,
+                                    onClick = { onNavigateToDetails(article.url) }
+                                )
+                            }
+                        }
+
+                        if (pagedNews.loadState.append is LoadState.Loading) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        strokeWidth = 3.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-                is UiState.Error -> {
-                    NewsErrorState(message = state.displayMessage) {
-                        viewModel.loadMondialNews(forceRefresh = true)
-                    }
-                }
-                is UiState.Empty -> {
-                    NewsEmptyState(isAr = isAr)
                 }
             }
 
@@ -96,7 +142,8 @@ fun NewsScreen(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
                 modifier = Modifier.align(Alignment.TopCenter),
-                color = Color(0xFFD4AF37)
+                color = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
     }
@@ -104,119 +151,178 @@ fun NewsScreen(
 
 @Composable
 fun NewsCard(
-    news: News,
+    article: News,
     isAr: Boolean,
     onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), 
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Box(
-                modifier = Modifier
-                    .background(Color(0x33D4AF37), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = if (isAr) news.categoryAr else news.categoryEn,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFD4AF37) 
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = if (isAr) news.titleAr else news.titleEn,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (isAr) news.readTimeAr else news.readTimeEn,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF94A3B8)
-                )
-
-                if (news.isTrending) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
                     Text(
-                        text = if (isAr) "🔥 شائع" else "🔥 Trending",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFE65100)
+                        text = if (isAr) article.sourceNameAr else article.sourceNameEn,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
+
+                val formattedTime = remember(article.publishedAt) {
+                    article.publishedAt
+                        .atZone(ZoneId.systemDefault())
+                        .format(
+                            DateTimeFormatter
+                                .ofLocalizedDateTime(FormatStyle.SHORT)
+                                .withLocale(if (isAr) Locale("ar") else Locale.ENGLISH)
+                        )
+                }
+
+                Text(
+                    text = formattedTime,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = if (isAr) article.titleAr else article.titleEn,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = if (isAr) article.descriptionAr else article.descriptionEn,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = if (isAr) "اقرأ التفاصيل ←" else "Read full story →",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(if (isAr) Alignment.Start else Alignment.End)
+            )
         }
     }
 }
 
 @Composable
-fun ShimmerNewsLoader() {
+fun NewsShimmerLoader() {
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        repeat(3) {
+        repeat(5) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .shimmer(shimmerInstance)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
             )
         }
     }
 }
 
 @Composable
-fun NewsErrorState(message: String, onRetry: () -> Unit) {
-    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during network failures
+fun NewsErrorState(message: String, isAr: Boolean, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(12.dp))
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Error",
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37))
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("Re-load News Feed", color = Color(0xFF111C24), fontWeight = FontWeight.Bold)
+            Text(
+                text = if (isAr) "إعادة المحاولة" else "Retry Sync",
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }
 
 @Composable
 fun NewsEmptyState(isAr: Boolean) {
-    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during news payload absences
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        contentAlignment = Alignment.Center
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Icon(
+            imageVector = Icons.Default.Article,
+            contentDescription = "No News",
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.",
+            text = if (isAr) "لا توجد أخبار رياضية متاحة حالياً." else "No sports news available right now.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (isAr) "اسحب الشاشة لأسفل لتحديث جلب الأخبار." else "Pull down to refresh and fetch the latest updates.",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
