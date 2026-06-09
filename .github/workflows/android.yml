@@ -18,11 +18,6 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Inject Football API Key into Local Properties
-        run: |
-          echo "football.api.key=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
-          echo "FOOTBALL_API_KEY=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
-
       - name: Decode Production Keystore File
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/worldmondial.jks
@@ -36,6 +31,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: ./gradlew :app:bundleRelease --no-daemon --stacktrace
 
       - name: Archive and Upload Compiled Modular Artifacts
