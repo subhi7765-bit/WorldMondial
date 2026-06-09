@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.filter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,7 +16,12 @@ import sa.mondial.world.core.domain.Match
 import sa.mondial.world.feature.matches.domain.GetMatchesUseCase
 import sa.mondial.world.core.analytics.AnalyticsTracker
 import timber.log.Timber
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
+
+// Fixed Cleanly: Added isolated enum structure to govern the dynamic local date filtering pipeline
+enum class SelectedDay { YESTERDAY, TODAY, TOMORROW }
 
 @HiltViewModel
 class MatchesViewModel @Inject constructor(
@@ -30,15 +36,29 @@ class MatchesViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    // Stateful trigger for Paging 3 flow
     private val _forceRefreshState = MutableStateFlow(false)
 
-    // Advanced Paging 3 flow, cached withinviewModelScope ensuring flow survival during rotation
-    val pagedMatchesFlow: Flow<PagingData<Match>> = _forceRefreshState
-        .flatMapLatest { force ->
-            getMatchesUseCase.getPaged(force)
+    // Dynamic reactive state to hold the user's active filter chip day selection
+    private val _selectedDay = MutableStateFlow(SelectedDay.TODAY)
+    val selectedDay: StateFlow<SelectedDay> = _selectedDay.asStateFlow()
+
+    // Advanced Paging 3 combination flow that intercepts and filters payload data safely on the client side using Java Time APIs
+    val pagedMatchesFlow: Flow<PagingData<Match>> = combine(_forceRefreshState, _selectedDay) { force, day ->
+        force to day
+    }.flatMapLatest { (force, day) ->
+        getMatchesUseCase.getPaged(force).map { pagingData ->
+            pagingData.filter { match ->
+                val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                val today = LocalDate.now(ZoneId.systemDefault())
+                val targetDate = when (day) {
+                    SelectedDay.YESTERDAY -> today.minusDays(1)
+                    SelectedDay.TODAY -> today
+                    SelectedDay.TOMORROW -> today.plusDays(1)
+                }
+                matchLocalDate == targetDate
+            }
         }
-        .cachedIn(viewModelScope)
+    }.cachedIn(viewModelScope)
 
     val currentLanguage = localizationManager.currentLanguage.stateIn(
         scope = viewModelScope,
@@ -49,6 +69,11 @@ class MatchesViewModel @Inject constructor(
     init {
         analyticsTracker.logScreenView("MatchesScreen")
         loadMondialMatches(forceRefresh = false)
+    }
+
+    fun selectDay(day: SelectedDay) {
+        _selectedDay.value = day
+        analyticsTracker.logEvent("matches_day_changed", mapOf("day" to day.name))
     }
 
     fun loadMondialMatches(forceRefresh: Boolean) {
