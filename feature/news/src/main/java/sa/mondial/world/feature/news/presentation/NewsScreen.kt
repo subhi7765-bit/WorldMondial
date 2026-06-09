@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.News
@@ -37,13 +38,14 @@ fun NewsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "تطورات المونديال" else "Mondial News Flash") },
+                title = { Text(if (isAr) "أخبار" else "News", fontWeight = FontWeight.Bold) }, // Fixed Cleanly: Streamlined header title from old flash string to localized clean news tag
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = Color(0xE6111C24), // Premium Unified Dark Slate Top Bar
+                    titleContentColor = Color(0xFFD4AF37) // Premium Gold Title Text Link
                 )
             )
         },
+        containerColor = Color.Transparent, // Reveals underlying app_bg texture seamlessly
         modifier = modifier
     ) { innerPadding ->
 
@@ -72,7 +74,7 @@ fun NewsScreen(
                             NewsCard(
                                 news = newsItem,
                                 isAr = isAr,
-                                onClick = { onNavigateToDetails(newsItem.url) } // Fixed Cleanly: Explicitly passing the newly added .url parameter stream to launch the browser properly
+                                onClick = { onNavigateToDetails(newsItem.url) }
                             )
                         }
                     }
@@ -90,7 +92,8 @@ fun NewsScreen(
             PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                color = Color(0xFFD4AF37)
             )
         }
     }
@@ -106,18 +109,19 @@ fun NewsCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), // Translucent modern dark theme coat
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Box(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
+                    .background(Color(0x33D4AF37), RoundedCornerShape(4.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = if (isAr) news.categoryAr else news.categoryEn,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = Color(0xFFD4AF37) // Premium Gold tag context
                 )
             }
 
@@ -126,7 +130,8 @@ fun NewsCard(
             Text(
                 text = if (isAr) news.titleAr else news.titleEn,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -139,7 +144,7 @@ fun NewsCard(
                 Text(
                     text = if (isAr) news.readTimeAr else news.readTimeEn,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = Color(0xFF94A3B8)
                 )
 
                 if (news.isTrending) {
@@ -168,7 +173,7 @@ fun ShimmerNewsLoader() {
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Gray.copy(alpha = 0.15f))
+                    .background(Color.White.copy(alpha = 0.08f))
             )
         }
     }
@@ -200,7 +205,7 @@ fun NewsEmptyState(isAr: Boolean) {
         Text(
             text = if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline
+            color = Color.White
         )
     }
 }
