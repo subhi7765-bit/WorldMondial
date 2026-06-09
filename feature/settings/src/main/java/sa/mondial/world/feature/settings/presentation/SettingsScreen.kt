@@ -1,6 +1,8 @@
 package sa.mondial.world.feature.settings.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,24 +29,29 @@ fun SettingsScreen(
     val language by viewModel.currentLanguage.collectAsState()
     val theme by viewModel.themePreference.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
+    
+    // Fixed Cleanly: Instantiated a rememberScrollState to govern the vertical scrolling gesture lifecycle
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(id = R.string.settings_title), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), // Modern Dark Obsidian Luxury Top Bar
-                    titleContentColor = Color(0xFFD4AF37) // Premium Golden Title Text
+                    containerColor = Color(0xE6111C24), 
+                    titleContentColor = Color(0xFFD4AF37) 
                 )
             )
         },
-        containerColor = Color.Transparent, // Ensures background image shows cleanly
+        containerColor = Color.Transparent, 
         modifier = modifier
     ) { innerPadding ->
+        // Fixed Cleanly: Added .verticalScroll(scrollState) component to enable smooth up/down dragging mechanics
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -54,12 +61,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.language),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37) // Golden Header Accent
+                    color = Color(0xFFD4AF37)
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
                 ) {
                     Column(
                         modifier = Modifier.selectableGroup()
@@ -85,12 +92,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.theme),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37) // Golden Header Accent
+                    color = Color(0xFFD4AF37)
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
                 ) {
                     Column(
                         modifier = Modifier.selectableGroup()
@@ -122,12 +129,12 @@ fun SettingsScreen(
                     text = stringResource(id = R.string.notifications),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD4AF37) // Golden Header Accent
+                    color = Color(0xFFD4AF37)
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)) // Dark translucent glass container
+                    colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C))
                 ) {
                     Row(
                         modifier = Modifier
@@ -149,7 +156,7 @@ fun SettingsScreen(
                             Text(
                                 text = stringResource(id = R.string.live_alerts_desc),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF94A3B8) // Soft readable slate gray text
+                                color = Color(0xFF94A3B8)
                             )
                         }
 
