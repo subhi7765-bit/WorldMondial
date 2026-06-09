@@ -47,6 +47,8 @@ fun MatchesScreen(
     val pagedMatches = viewModel.pagedMatchesFlow.collectAsLazyPagingItems()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
+    
+    val selectedDay by viewModel.selectedDay.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadMondialMatches(forceRefresh = false)
@@ -55,83 +57,125 @@ fun MatchesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "مباريات المونديال الذكية" else "Mondial Paged Matches", fontWeight = FontWeight.Bold) },
+                title = { Text(if (isAr) "مباريات اليوم" else "Today's Matches", fontWeight = FontWeight.Bold) }, // Fixed Cleanly: Updated header string to reflect inclusive daily schedule as requested
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), // Unique Dark Slate Luxury Top Bar
-                    titleContentColor = Color(0xFFD4AF37) // Premium Custom Gold Title
+                    containerColor = Color(0xE6111C24), 
+                    titleContentColor = Color(0xFFD4AF37) 
                 )
             )
         },
-        containerColor = Color.Transparent, // Ensures global background reveals flawlessly
+        containerColor = Color.Transparent, 
         modifier = modifier
     ) { innerPadding ->
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .pullToRefresh(
-                    isRefreshing = isRefreshing,
-                    state = pullToRefreshState,
-                    onRefresh = { 
-                        viewModel.loadMondialMatches(forceRefresh = true)
-                        pagedMatches.refresh()
-                    }
-                )
         ) {
-            when {
-                pagedMatches.loadState.refresh is LoadState.Loading -> {
-                    ShimmerMatchListLoader(modifier = Modifier.testTag("loading_indicator"))
-                }
-                pagedMatches.loadState.refresh is LoadState.Error -> {
-                    val error = (pagedMatches.loadState.refresh as LoadState.Error).error
-                    MatchErrorState(
-                        message = error.localizedMessage ?: "Paging Error occurred",
-                        onRetry = { pagedMatches.retry() }
-                    )
-                }
-                pagedMatches.itemCount == 0 -> {
-                    MatchEmptyState(isAr = isAr)
-                }
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        items(pagedMatches.itemCount) { index ->
-                            pagedMatches[index]?.let { match ->
-                                MatchCard(
-                                    match = match,
-                                    isAr = isAr,
-                                    onClick = { onNavigateToDetails(match.id) }
-                                )
-                            }
-                        }
+            // Elegant Glassmorphism Horizontal Day Selector Bar with matching Golden Accent layout configurations
+            Row(
+                modifier = Modifier
+                    .fillOuterWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(Color(0x1AFFFFFF), RoundedCornerShape(24.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val daysList = listOf(
+                    SelectedDay.YESTERDAY to (if (isAr) "أمس" else "Yesterday"),
+                    SelectedDay.TODAY to (if (isAr) "اليوم" else "Today"),
+                    SelectedDay.TOMORROW to (if (isAr) "الغد" else "Tomorrow")
+                )
 
-                        if (pagedMatches.loadState.append is LoadState.Loading) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(strokeWidth = 3.dp, color = Color(0xFFD4AF37))
+                daysList.forEach { (dayEnum, label) ->
+                    val isCurrentSelection = selectedDay == dayEnum
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isCurrentSelection) Color(0x33D4AF37) else Color.Transparent)
+                            .clickable { viewModel.selectDay(dayEnum) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (isCurrentSelection) Color(0xFFD4AF37) else Color(0xFF94A3B8),
+                            fontWeight = if (isCurrentSelection) FontWeight.Bold else FontWeight.Normal,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pullToRefresh(
+                        isRefreshing = isRefreshing,
+                        state = pullToRefreshState,
+                        onRefresh = { 
+                            viewModel.loadMondialMatches(forceRefresh = true)
+                            pagedMatches.refresh()
+                        }
+                    )
+            ) {
+                when {
+                    pagedMatches.loadState.refresh is LoadState.Loading -> {
+                        ShimmerMatchListLoader(modifier = Modifier.testTag("loading_indicator"))
+                    }
+                    pagedMatches.loadState.refresh is LoadState.Error -> {
+                        val error = (pagedMatches.loadState.refresh as LoadState.Error).error
+                        MatchErrorState(
+                            message = error.localizedMessage ?: "Paging Error occurred",
+                            onRetry = { pagedMatches.retry() }
+                        )
+                    }
+                    pagedMatches.itemCount == 0 -> {
+                        MatchEmptyState(isAr = isAr)
+                    }
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            items(pagedMatches.itemCount) { index ->
+                                pagedMatches[index]?.let { match ->
+                                    MatchCard(
+                                        match = match,
+                                        isAr = isAr,
+                                        onClick = { onNavigateToDetails(match.id) }
+                                    )
+                                }
+                            }
+
+                            if (pagedMatches.loadState.append is LoadState.Loading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(strokeWidth = 3.dp, color = Color(0xFFD4AF37))
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            PullToRefreshDefaults.Indicator(
-                state = pullToRefreshState,
-                isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-                color = Color(0xFFD4AF37)
-            )
+                PullToRefreshDefaults.Indicator(
+                    state = pullToRefreshState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    color = Color(0xFFD4AF37)
+                )
+            }
         }
     }
 }
@@ -149,7 +193,7 @@ fun MatchCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), // Luxury Translucent obsidian glass coat
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), 
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -161,7 +205,7 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.roundAr else match.roundEn,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFD4AF37), // Golden text indicator
+                    color = Color(0xFFD4AF37), 
                     fontWeight = FontWeight.Bold
                 )
                 
@@ -191,7 +235,7 @@ fun MatchCard(
             ) {
                 Text(
                     text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn,
-                    style = MaterialTheme.typography.titleSmall, // Fixed Cleanly: Restored to standard titleSmall from typo reference mistake
+                    style = MaterialTheme.typography.titleSmall, 
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -199,7 +243,7 @@ fun MatchCard(
                 )
 
                 Surface(
-                    color = Color(0x4D334155), // Translucent slate block for scores
+                    color = Color(0x4D334155), 
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier.padding(horizontal = 12.dp)
                 ) {
@@ -216,7 +260,7 @@ fun MatchCard(
                         Text(
                             text = " : ", 
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFD4AF37), // Golden separator colon
+                            color = Color(0xFFD4AF37), 
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                         Text(
@@ -262,7 +306,7 @@ fun MatchCard(
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
-                        color = Color(0xCC7C2D12), // Premium deep crimson-amber countdown tint
+                        color = Color(0xCC7C2D12), 
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
@@ -374,7 +418,7 @@ fun MatchErrorState(message: String, onRetry: () -> Unit) {
 fun MatchEmptyState(isAr: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = if (isAr) "لا توجد مباريات حية حالياً." else "No live matches found.",
+            text = if (isAr) "لا توجد مباريات متاحة في تاريخ هذا اليوم." else "No matches scheduled for this specific date.",
             color = Color.White
         )
     }
