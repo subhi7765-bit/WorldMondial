@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        //installSplashScreen()
         
         super.onCreate(savedInstanceState)
         checkAndRequestNotificationPermission()
