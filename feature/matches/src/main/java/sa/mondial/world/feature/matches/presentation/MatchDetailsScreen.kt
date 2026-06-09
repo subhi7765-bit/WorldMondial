@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.rememberShimmer
-import com.valentinilk.shimmer.ShimmerBounds // Fixed Cleanly: Added strict ShimmerBounds framework verification
+import com.valentinilk.shimmer.ShimmerBounds 
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.LineupPlayer
 import sa.mondial.world.core.domain.MatchDetails
@@ -36,9 +36,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/**
- * Detailed intelligence screen presenting formations, timelines, scores and metrics for a specific Mondial match.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchDetailsScreen(
@@ -63,7 +60,7 @@ fun MatchDetailsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             LargeTopAppBar(
-                title = { Text(if (isAr) "تفاصيل المباراة الذكية" else "Match Intelligence Details") },
+                title = { Text(if (isAr) "تفاصيل المباراة الذكية" else "Match Intelligence Details", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -93,7 +90,6 @@ fun MatchDetailsScreen(
                                 } ?: ""
                                 val venue = if (isAr) detailsObj.venueAr else detailsObj.venueEn
                                 
-                                // Fixed multiline string instantiation utilizing raw Kotlin triple quotes blocks
                                 val shareText = if (isAr) {
                                     """🏆 $homeTeam × $awayTeam
 ⚽ النتيجة: $homeScore-$awayScore
@@ -124,12 +120,17 @@ fun MatchDetailsScreen(
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                // Fixed Cleanly: Injected unified dark luxury color palette slots into the LargeTopAppBar container
                 colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    scrolledContainerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = Color(0xE6111C24),
+                    scrolledContainerColor = Color(0xFF111C24),
+                    titleContentColor = Color(0xFFD4AF37),
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color(0xFFD4AF37)
                 )
             )
         },
+        containerColor = Color.Transparent, // Allows the main wallpaper to display flawlessly behind content
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
         val isOfflineWithCache by viewModel.isOfflineWithCache.collectAsState()
@@ -145,7 +146,7 @@ fun MatchDetailsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xD97F1D1D)), // Premium Dark Crimson for offline banner alerts
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(
@@ -158,7 +159,7 @@ fun MatchDetailsScreen(
                                 "⚠️ وضع غير متصل بالشبكة: تم تحميل البيانات المخزنة من آخر مزامنة: ${lastSyncTimestamp ?: ""}"
                             else 
                                 "⚠️ Offline mode: Loaded cached data from last synchronization: ${lastSyncTimestamp ?: ""}",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = Color.White,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -218,11 +219,10 @@ fun MatchDetailsContent(
             MatchHeaderCard(details = details, isAr = isAr)
         }
 
-        // Native embedded stadium card rendering layout safely decoupling multi-feature modules paths
         item {
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), // Translucent Obsidian Glass
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -230,12 +230,13 @@ fun MatchDetailsContent(
                         text = if (isAr) "🏟️ الاستاد والملعب" else "🏟️ Stadium Venue",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFFD4AF37) // Custom Premium Gold accent
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (isAr) details.venueAr else details.venueEn,
                         style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -253,7 +254,7 @@ fun MatchDetailsContent(
                 text = if (isAr) "تشكيلة ${details.homeTeamNameAr}" else "${details.homeTeamNameEn} Squad",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color(0xFFD4AF37),
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
@@ -283,7 +284,7 @@ fun MatchDetailsContent(
                 text = if (isAr) "تشكيلة ${details.awayTeamNameAr}" else "${details.awayTeamNameEn} Squad",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Color(0xFF94A3B8), // Slate silver contrast color for away team label
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
@@ -317,7 +318,7 @@ fun MatchHeaderCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), 
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -327,13 +328,13 @@ fun MatchHeaderCard(
             Text(
                 text = if (isAr) details.roundAr else details.roundEn,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color(0xFFD4AF37),
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = if (isAr) details.venueAr else details.venueEn,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF94A3B8),
                 modifier = Modifier.padding(top = 2.dp)
             )
 
@@ -356,6 +357,7 @@ fun MatchHeaderCard(
                     Text(
                         text = if (isAr) details.homeTeamNameAr else details.homeTeamNameEn,
                         style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
@@ -370,20 +372,20 @@ fun MatchHeaderCard(
                         text = details.homeScore?.toString() ?: "-",
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color.White
                     )
                     Text(
                         text = ":",
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = Color(0xFFD4AF37),
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
                     Text(
                         text = details.awayScore?.toString() ?: "-",
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color.White
                     )
                 }
 
@@ -399,6 +401,7 @@ fun MatchHeaderCard(
                     Text(
                         text = if (isAr) details.awayTeamNameAr else details.awayTeamNameEn,
                         style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
@@ -413,9 +416,9 @@ fun MatchHeaderCard(
                 MatchStatus.UPCOMING -> if (isAr) "لم تبدأ بعد" else "Upcoming"
             }
             val statusColor = when (details.matchStatus) {
-                MatchStatus.FINISHED -> MaterialTheme.colorScheme.outline
-                MatchStatus.LIVE -> Color(0xFFC62828)
-                MatchStatus.UPCOMING -> MaterialTheme.colorScheme.primary
+                MatchStatus.FINISHED -> Color(0xFF94A3B8)
+                MatchStatus.LIVE -> Color(0xFFEF4444)
+                MatchStatus.UPCOMING -> Color(0xFFD4AF37)
             }
 
             Box(
@@ -448,13 +451,13 @@ fun MatchHeaderCard(
             Text(
                 text = "${if (isAr) "حكم اللقاء: " else "Referee: "}${if (isAr) details.refereeAr else details.refereeEn}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color(0xFF94A3B8)
             )
 
             Text(
                 text = "${if (isAr) "توقيت محلي: " else "Local Time: "}$localTime",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                color = Color(0xFF94A3B8).copy(alpha = 0.8f),
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
@@ -468,7 +471,7 @@ fun TimelineEventsCard(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -476,7 +479,7 @@ fun TimelineEventsCard(
                 text = if (isAr) "أحداث المباراة الهامة" else "Match Key Timeline",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.outline
+                color = Color(0xFFD4AF37)
             )
             Spacer(modifier = Modifier.height(12.dp))
             val list = if (isAr) details.timelineEventsAr else details.timelineEventsEn
@@ -489,17 +492,17 @@ fun TimelineEventsCard(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(Color(0xFFD4AF37))
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = event,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color.White
                     )
                 }
                 if (index < list.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(color = Color(0x1AFFFFFF), modifier = Modifier.padding(vertical = 4.dp))
                 }
             }
         }
@@ -515,7 +518,7 @@ fun CardAccordionSection(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() }
@@ -531,12 +534,13 @@ fun CardAccordionSection(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = if (isExpanded) "▲" else "▼",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = Color(0xFFD4AF37)
                 )
             }
 
@@ -548,7 +552,7 @@ fun CardAccordionSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                        .background(Color(0x0DFFFFFF))
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     content()
@@ -571,8 +575,8 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
                         .size(24.dp)
                         .clip(CircleShape)
                         .background(
-                            if (player.isGoalkeeper) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            if (player.isGoalkeeper) Color(0x33D4AF37)
+                            else Color(0x1AFFFFFF)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -580,7 +584,7 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
                         text = player.number.toString(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (player.isGoalkeeper) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                        color = if (player.isGoalkeeper) Color(0xFFD4AF37) else Color.White
                     )
                 }
 
@@ -590,7 +594,7 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
                     text = if (isAr) player.nameAr else player.nameEn,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (player.isCaptain) FontWeight.Bold else FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.White
                 )
                 if (player.isCaptain) {
                     Spacer(modifier = Modifier.width(6.dp))
@@ -598,7 +602,7 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
                         text = if (isAr) "(C)" else "(Capt)",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFFC62828)
+                        color = Color(0xFFEF4444)
                     )
                 }
 
@@ -607,13 +611,13 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        .background(Color(0x1AFFFFFF))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = if (isAr) player.positionAr else player.positionEn,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color(0xFF94A3B8)
                     )
                 }
             }
@@ -623,7 +627,6 @@ fun LineupList(players: List<LineupPlayer>, isAr: Boolean) {
 
 @Composable
 fun ShimmerMatchDetailsLoader() {
-    // Fixed Cleanly: Diverted framework instantiation to use localized View bounds to align configuration consistency
     val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
     Column(
         modifier = Modifier
@@ -638,14 +641,14 @@ fun ShimmerMatchDetailsLoader() {
                 .fillMaxWidth()
                 .height(200.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.Gray.copy(alpha = 0.3f))
+                .background(Color.White.copy(alpha = 0.08f))
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.Gray.copy(alpha = 0.3f))
+                .background(Color.White.copy(alpha = 0.08f))
         )
         Box(
             modifier = Modifier
@@ -653,14 +656,14 @@ fun ShimmerMatchDetailsLoader() {
                 .height(20.dp)
                 .align(Alignment.Start)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color.Gray.copy(alpha = 0.3f))
+                .background(Color.White.copy(alpha = 0.08f))
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.Gray.copy(alpha = 0.3f))
+                .background(Color.White.copy(alpha = 0.08f))
         )
     }
 }
@@ -682,9 +685,10 @@ fun MatchDetailsErrorState(message: String, onRetry: () -> Unit) {
         )
         Button(
             onClick = onRetry,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37))
         ) {
-            Text("Retry loading")
+            Text("Retry loading", color = Color(0xFF111C24), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -697,7 +701,8 @@ fun MatchDetailsEmptyState(isAr: Boolean) {
     ) {
         Text(
             text = if (isAr) "لا تتوفر تفاصيل لهذه مباراة حالياً." else "No details available for this match.",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
         )
     }
 }
