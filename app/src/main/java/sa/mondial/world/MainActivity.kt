@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Fixed Cleanly: Re-enabled native system splash engine to cleanly handle the cold start lifecycle
-        installSplashScreen()
+        //installSplashScreen()
         
         super.onCreate(savedInstanceState)
         checkAndRequestNotificationPermission()
