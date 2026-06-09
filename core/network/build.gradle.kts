@@ -45,8 +45,10 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
+    
+    // THE FIX: Connecting Network module to Database module so it can recognize Entities
+    implementation(project(":core:database"))
 
-    // FIXED: Matched exactly with the definitions in libs.versions.toml
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp.logging)
