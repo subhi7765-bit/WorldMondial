@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -16,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.News
@@ -38,14 +41,14 @@ fun NewsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "أخبار" else "News", fontWeight = FontWeight.Bold) }, // Fixed Cleanly: Streamlined header title from old flash string to localized clean news tag
+                title = { Text(if (isAr) "أخبار" else "News", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), // Premium Unified Dark Slate Top Bar
-                    titleContentColor = Color(0xFFD4AF37) // Premium Gold Title Text Link
+                    containerColor = Color(0xE6111C24), 
+                    titleContentColor = Color(0xFFD4AF37) 
                 )
             )
         },
-        containerColor = Color.Transparent, // Reveals underlying app_bg texture seamlessly
+        containerColor = Color.Transparent, 
         modifier = modifier
     ) { innerPadding ->
 
@@ -109,7 +112,7 @@ fun NewsCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), // Translucent modern dark theme coat
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), 
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -121,7 +124,7 @@ fun NewsCard(
                 Text(
                     text = if (isAr) news.categoryAr else news.categoryEn,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFD4AF37) // Premium Gold tag context
+                    color = Color(0xFFD4AF37) 
                 )
             }
 
@@ -181,31 +184,40 @@ fun ShimmerNewsLoader() {
 
 @Composable
 fun NewsErrorState(message: String, onRetry: () -> Unit) {
+    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during network failures
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = message, color = MaterialTheme.colorScheme.error)
+        Text(text = message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onRetry) {
-            Text("Re-load News Feed")
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37))
+        ) {
+            Text("Re-load News Feed", color = Color(0xFF111C24), fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
 fun NewsEmptyState(isAr: Boolean) {
+    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during news payload absences
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = if (isAr) "لا توجد أية أخبار متاحة حالياً." else "No news flash available.",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White
+            color = Color.White,
+            textAlign = TextAlign.Center
         )
     }
 }
