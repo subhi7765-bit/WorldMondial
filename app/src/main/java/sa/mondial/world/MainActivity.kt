@@ -10,6 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -220,10 +225,35 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     ) { paddingValues ->
+                        // Smooth Navigation Transitions Added Here
                         NavHost(
                             navController = navController,
                             startDestination = DashboardDestination.Matches,
-                            modifier = Modifier.padding(paddingValues)
+                            modifier = Modifier.padding(paddingValues),
+                            enterTransition = {
+                                fadeIn(animationSpec = tween(300)) + slideInHorizontally(
+                                    initialOffsetX = { 300 },
+                                    animationSpec = tween(300)
+                                )
+                            },
+                            exitTransition = {
+                                fadeOut(animationSpec = tween(300)) + slideOutHorizontally(
+                                    targetOffsetX = { -300 },
+                                    animationSpec = tween(300)
+                                )
+                            },
+                            popEnterTransition = {
+                                fadeIn(animationSpec = tween(300)) + slideInHorizontally(
+                                    initialOffsetX = { -300 },
+                                    animationSpec = tween(300)
+                                )
+                            },
+                            popExitTransition = {
+                                fadeOut(animationSpec = tween(300)) + slideOutHorizontally(
+                                    targetOffsetX = { 300 },
+                                    animationSpec = tween(300)
+                                )
+                            }
                         ) {
                             composable<DashboardDestination.Matches> {
                                 val viewModel: MatchesViewModel = hiltViewModel()
