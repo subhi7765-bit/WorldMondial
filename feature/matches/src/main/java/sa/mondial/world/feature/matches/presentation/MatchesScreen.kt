@@ -191,7 +191,7 @@ fun MatchCard(
             ) {
                 Text(
                     text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn,
-                    style = MaterialTheme.typography.titleModifier,
+                    style = MaterialTheme.typography.titleSmall, // Fixed Cleanly: Restored to standard titleSmall from typo reference mistake
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
