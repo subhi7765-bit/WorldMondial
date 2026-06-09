@@ -1,0 +1,21 @@
+package sa.mondial.world.core.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val DarkBackground = Color(0xFF111C24)
+val DarkSurface = Color(0xFF18222C)
+val DarkSurfaceVariant = Color(0xFF24313D)
+val DarkPrimary = Color(0xFFD4AF37)
+val DarkSecondary = Color(0xFF1E5E47)
+val DarkOnBackground = Color(0xFFFFFFFF)
+val DarkOnSurface = Color(0xFFFFFFFF)
+val DarkOnSurfaceVariant = Color(0xFF94A3B8)
+
+val LightBackground = Color(0xFFF4F6F8)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurfaceVariant = Color(0xFFE2E8F0)
+val LightPrimary = Color(0xFFC59B27)
+val LightSecondary = Color(0xFF114232)
+val LightOnBackground = Color(0xFF111C24)
+val LightOnSurface = Color(0xFF111C24)
+val LightOnSurfaceVariant = Color(0xFF64748B)
