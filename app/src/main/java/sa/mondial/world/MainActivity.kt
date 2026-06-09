@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,6 +21,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -98,7 +103,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            // Configured Cleanly: Dynamic background theme wrapping setup
+            MaterialTheme(
+                colorScheme = MaterialTheme.colorScheme.copy(
+                    background = Color.Transparent,
+                    surface = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                )
+            ) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
@@ -111,110 +122,122 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        val showBottomBar = currentDestination != null && (
-                            currentDestination.hasRoute<DashboardDestination.Matches>() ||
-                            currentDestination.hasRoute<DashboardDestination.News>() ||
-                            currentDestination.hasRoute<DashboardDestination.Settings>()
-                        )
-                        if (showBottomBar) {
-                            NavigationBar {
-                                NavigationBarItem(
-                                    selected = currentDestination?.hasRoute<DashboardDestination.Matches>() == true,
-                                    onClick = {
-                                        navController.navigate(DashboardDestination.Matches) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                // Global container box to layer the background image beneath all elements
+                Box(modifier = Modifier.fillMaxSize()) {
+                    
+                    // Fixed Cleanly: Added full screen background layout container reading from the core:ui drawable assets module
+                    Image(
+                        painter = painterResource(id = sa.mondial.world.core.ui.R.drawable.app_bg),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = Color.Transparent, // Transparent scaffold ensures the image reveals underneath beautifully
+                        bottomBar = {
+                            val showBottomBar = currentDestination != null && (
+                                currentDestination.hasRoute<DashboardDestination.Matches>() ||
+                                currentDestination.hasRoute<DashboardDestination.News>() ||
+                                currentDestination.hasRoute<DashboardDestination.Settings>()
+                            )
+                            if (showBottomBar) {
+                                NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)) {
+                                    NavigationBarItem(
+                                        selected = currentDestination?.hasRoute<DashboardDestination.Matches>() == true,
+                                        onClick = {
+                                            navController.navigate(DashboardDestination.Matches) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(Icons.Default.Home, contentDescription = "Matches") },
-                                    label = { Text("Matches") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentDestination?.hasRoute<DashboardDestination.News>() == true,
-                                    onClick = {
-                                        navController.navigate(DashboardDestination.News) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                                        },
+                                        icon = { Icon(Icons.Default.Home, contentDescription = "Matches") },
+                                        label = { Text("Matches") }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentDestination?.hasRoute<DashboardDestination.News>() == true,
+                                        onClick = {
+                                            navController.navigate(DashboardDestination.News) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(Icons.Default.Info, contentDescription = "News") },
-                                    label = { Text("News") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentDestination?.hasRoute<DashboardDestination.Settings>() == true,
-                                    onClick = {
-                                        navController.navigate(DashboardDestination.Settings) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                                        },
+                                        icon = { Icon(Icons.Default.Info, contentDescription = "News") },
+                                        label = { Text("News") }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentDestination?.hasRoute<DashboardDestination.Settings>() == true,
+                                        onClick = {
+                                            navController.navigate(DashboardDestination.Settings) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                                    label = { Text("Settings") }
-                                )
+                                        },
+                                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                                        label = { Text("Settings") }
+                                    )
+                                }
                             }
                         }
-                    }
-                ) { paddingValues ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = DashboardDestination.Matches,
-                        modifier = Modifier.padding(paddingValues)
-                    ) {
-                        composable<DashboardDestination.Matches> {
-                            val viewModel: MatchesViewModel = hiltViewModel()
-                            MatchesScreen(
-                                viewModel = viewModel,
-                                onNavigateToDetails = { id ->
-                                    navController.navigate(DashboardDestination.MatchDetailsRoute(id))
-                                }
-                            )
-                        }
-                        composable<DashboardDestination.News> {
-                            val viewModel: NewsViewModel = hiltViewModel()
-                            NewsScreen(
-                                viewModel = viewModel,
-                                onNavigateToDetails = { articleUrl ->
-                                    try {
-                                        // Fixed Cleanly: Added explicit Activity context mapping and NEW_TASK flag for flawless external browser intent loading
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(articleUrl)).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        this@MainActivity.startActivity(intent)
-                                        Timber.i("MainActivity: Browser intent dispatched flawlessly for URL: $articleUrl")
-                                    } catch (exception: Exception) {
-                                        Timber.e(exception, "MainActivity: External intent execution crashed or blocked silently")
+                    ) { paddingValues ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = DashboardDestination.Matches,
+                            modifier = Modifier.padding(paddingValues)
+                        ) {
+                            composable<DashboardDestination.Matches> {
+                                val viewModel: MatchesViewModel = hiltViewModel()
+                                MatchesScreen(
+                                    viewModel = viewModel,
+                                    onNavigateToDetails = { id ->
+                                        navController.navigate(DashboardDestination.MatchDetailsRoute(id))
                                     }
-                                }
-                            )
-                        }
-                        composable<DashboardDestination.Settings> {
-                            val viewModel: SettingsViewModel = hiltViewModel()
-                            SettingsScreen(
-                                viewModel = viewModel
-                            )
-                        }
-                        composable<DashboardDestination.MatchDetailsRoute> { backStackEntry ->
-                            val route = backStackEntry.toRoute<DashboardDestination.MatchDetailsRoute>()
-                            val matchId = route.matchId
-                            val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
-                            MatchDetailsScreen(
-                                viewModel = viewModel,
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                }
-                            )
+                                )
+                            }
+                            composable<DashboardDestination.News> {
+                                val viewModel: NewsViewModel = hiltViewModel()
+                                NewsScreen(
+                                    viewModel = viewModel,
+                                    onNavigateToDetails = { articleUrl ->
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(articleUrl)).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            this@MainActivity.startActivity(intent)
+                                            Timber.i("MainActivity: Browser intent dispatched flawlessly for URL: $articleUrl")
+                                        } catch (exception: Exception) {
+                                            Timber.e(exception, "MainActivity: External intent execution crashed or blocked silently")
+                                        }
+                                    }
+                                )
+                            }
+                            composable<DashboardDestination.Settings> {
+                                val viewModel: SettingsViewModel = hiltViewModel()
+                                SettingsScreen(
+                                    viewModel = viewModel
+                                )
+                            }
+                            composable<DashboardDestination.MatchDetailsRoute> { backStackEntry ->
+                                val route = backStackEntry.toRoute<DashboardDestination.MatchDetailsRoute>()
+                                val matchId = route.matchId
+                                val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
+                                MatchDetailsScreen(
+                                        viewModel = viewModel,
+                                        onNavigateBack = {
+                                            navController.popBackStack()
+                                        }
+                                )
+                            }
                         }
                     }
                 }
