@@ -48,7 +48,6 @@ fun MatchesScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
 
-    // Trigger an asynchronous live data sync immediately upon entering this screen
     LaunchedEffect(Unit) {
         viewModel.loadMondialMatches(forceRefresh = false)
     }
@@ -56,13 +55,14 @@ fun MatchesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "مباريات المونديال الذكية" else "Mondial Paged Matches") },
+                title = { Text(if (isAr) "مباريات المونديال الذكية" else "Mondial Paged Matches", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = Color(0xE6111C24), // Unique Dark Slate Luxury Top Bar
+                    titleContentColor = Color(0xFFD4AF37) // Premium Custom Gold Title
                 )
             )
         },
+        containerColor = Color.Transparent, // Ensures global background reveals flawlessly
         modifier = modifier
     ) { innerPadding ->
 
@@ -118,7 +118,7 @@ fun MatchesScreen(
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(strokeWidth = 3.dp)
+                                    CircularProgressIndicator(strokeWidth = 3.dp, color = Color(0xFFD4AF37))
                                 }
                             }
                         }
@@ -129,7 +129,8 @@ fun MatchesScreen(
             PullToRefreshDefaults.Indicator(
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                color = Color(0xFFD4AF37)
             )
         }
     }
@@ -148,8 +149,8 @@ fun MatchCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), // Luxury Translucent obsidian glass coat
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -160,7 +161,7 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.roundAr else match.roundEn,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color(0xFFD4AF37), // Golden text indicator
                     fontWeight = FontWeight.Bold
                 )
                 
@@ -177,7 +178,7 @@ fun MatchCard(
                 Text(
                     text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = Color(0xFF94A3B8)
                 )
             }
 
@@ -190,14 +191,15 @@ fun MatchCard(
             ) {
                 Text(
                     text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleModifier,
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                     textAlign = if (isAr) TextAlign.Right else TextAlign.Left
                 )
 
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = Color(0x4D334155), // Translucent slate block for scores
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier.padding(horizontal = 12.dp)
                 ) {
@@ -208,17 +210,19 @@ fun MatchCard(
                         Text(
                             text = match.homeScore?.toString() ?: "-",
                             style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = " : ", 
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = Color(0xFFD4AF37), // Golden separator colon
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                         Text(
                             text = match.awayScore?.toString() ?: "-",
                             style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -227,6 +231,7 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.awayTeamNameAr else match.awayTeamNameEn,
                     style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                     textAlign = if (isAr) TextAlign.Left else TextAlign.Right
@@ -257,14 +262,14 @@ fun MatchCard(
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        color = Color(0xCC7C2D12), // Premium deep crimson-amber countdown tint
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
                         Text(
                             text = if (isAr) "يبدأ بعد: $countdownStr" else "Starts in: $countdownStr",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            color = Color.White,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             fontWeight = FontWeight.Bold
                         )
@@ -279,11 +284,12 @@ fun MatchCard(
 
             TextButton(
                 onClick = { isExpanded = !isExpanded },
+                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD4AF37)),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(top = 8.dp)
             ) {
-                Text(text = expandText)
+                Text(text = expandText, fontWeight = FontWeight.Bold)
             }
 
             AnimatedVisibility(
@@ -295,29 +301,29 @@ fun MatchCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .background(Color(0x33FFFFFF), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelSmall, color = Color(0xFFD4AF37), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         if (match.homeLineup.isEmpty()) {
-                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
                         } else {
                             match.homeLineup.forEach { player ->
-                                Text("• $player", style = MaterialTheme.typography.bodySmall)
+                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = Color.White)
                             }
                         }
                     }
                     Spacer(Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "الاحتياط" else "Bench Squad", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                        Text(if (isAr) "الاحتياط" else "Bench Squad", style = MaterialTheme.typography.labelSmall, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         if (match.awayLineup.isEmpty()) {
-                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
                         } else {
                             match.awayLineup.forEach { player ->
-                                Text("• $player", style = MaterialTheme.typography.bodySmall)
+                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = Color.White)
                             }
                         }
                     }
@@ -369,7 +375,7 @@ fun MatchEmptyState(isAr: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
             text = if (isAr) "لا توجد مباريات حية حالياً." else "No live matches found.",
-            color = MaterialTheme.colorScheme.outline
+            color = Color.White
         )
     }
 }
