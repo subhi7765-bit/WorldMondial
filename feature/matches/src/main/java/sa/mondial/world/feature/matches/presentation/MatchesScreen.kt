@@ -1,6 +1,7 @@
 package sa.mondial.world.feature.matches.presentation
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
@@ -59,10 +63,16 @@ fun MatchesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "مباريات اليوم" else "Today's Matches", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = if (isAr) "مباريات اليوم" else "Today's Matches", 
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    ) 
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xE6111C24), 
-                    titleContentColor = Color(0xFFD4AF37) 
+                    containerColor = Color.Transparent, 
+                    titleContentColor = MaterialTheme.colorScheme.primary 
                 )
             )
         },
@@ -75,11 +85,12 @@ fun MatchesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Animated Day Selector Tab
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color(0x1AFFFFFF), RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
@@ -96,16 +107,16 @@ fun MatchesScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(if (isCurrentSelection) Color(0x33D4AF37) else Color.Transparent)
+                            .background(if (isCurrentSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent)
                             .clickable { viewModel.selectDay(dayEnum) }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            color = if (isCurrentSelection) Color(0xFFD4AF37) else Color(0xFF94A3B8),
-                            fontWeight = if (isCurrentSelection) FontWeight.Bold else FontWeight.Normal,
-                            style = MaterialTheme.typography.bodyMedium
+                            color = if (isCurrentSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isCurrentSelection) FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }
@@ -130,7 +141,8 @@ fun MatchesScreen(
                     pagedMatches.loadState.refresh is LoadState.Error -> {
                         val error = (pagedMatches.loadState.refresh as LoadState.Error).error
                         MatchErrorState(
-                            message = error.localizedMessage ?: "Paging Error occurred",
+                            message = error.localizedMessage ?: "Network Sync Error",
+                            isAr = isAr,
                             onRetry = { pagedMatches.retry() }
                         )
                     }
@@ -162,7 +174,10 @@ fun MatchesScreen(
                                             .padding(16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        CircularProgressIndicator(strokeWidth = 3.dp, color = Color(0xFFD4AF37))
+                                        CircularProgressIndicator(
+                                            strokeWidth = 3.dp, 
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
                             }
@@ -174,7 +189,8 @@ fun MatchesScreen(
                     state = pullToRefreshState,
                     isRefreshing = isRefreshing,
                     modifier = Modifier.align(Alignment.TopCenter),
-                    color = Color(0xFFD4AF37)
+                    color = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -192,10 +208,11 @@ fun MatchCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(durationMillis = 300))
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xCC18222C)), 
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)), 
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -206,8 +223,7 @@ fun MatchCard(
                 Text(
                     text = if (isAr) match.roundAr else match.roundEn,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFD4AF37), 
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 val formattedTime = remember(match.utcTime) {
@@ -223,11 +239,11 @@ fun MatchCard(
                 Text(
                     text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF94A3B8)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -236,48 +252,44 @@ fun MatchCard(
             ) {
                 Text(
                     text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn,
-                    style = MaterialTheme.typography.titleSmall, 
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium, 
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     textAlign = if (isAr) TextAlign.Right else TextAlign.Left
                 )
 
                 Surface(
-                    color = Color(0x4D334155), 
-                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant, 
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.padding(horizontal = 12.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = match.homeScore?.toString() ?: "-",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = " : ", 
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFD4AF37), 
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary, 
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                         Text(
                             text = match.awayScore?.toString() ?: "-",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
                 Text(
                     text = if (isAr) match.awayTeamNameAr else match.awayTeamNameEn,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                     textAlign = if (isAr) TextAlign.Left else TextAlign.Right
                 )
@@ -305,18 +317,17 @@ fun MatchCard(
 
                     val countdownStr = "${days}d ${hours}h ${minutes}m ${seconds}s"
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Surface(
-                        color = Color(0xCC7C2D12), 
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f), 
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
                         Text(
                             text = if (isAr) "يبدأ بعد: $countdownStr" else "Starts in: $countdownStr",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -329,12 +340,12 @@ fun MatchCard(
 
             TextButton(
                 onClick = { isExpanded = !isExpanded },
-                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD4AF37)),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(top = 8.dp)
             ) {
-                Text(text = expandText, fontWeight = FontWeight.Bold)
+                Text(text = expandText, style = MaterialTheme.typography.labelMedium)
             }
 
             AnimatedVisibility(
@@ -346,29 +357,29 @@ fun MatchCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
-                        .background(Color(0x33FFFFFF), RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelSmall, color = Color(0xFFD4AF37), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(if (isAr) "تشكيلة الأساس" else "Starting XI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(8.dp))
                         if (match.homeLineup.isEmpty()) {
-                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             match.homeLineup.forEach { player ->
-                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(if (isAr) "الاحتياط" else "Bench Squad", style = MaterialTheme.typography.labelSmall, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(if (isAr) "الاحتياط" else "Bench Squad", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
                         if (match.awayLineup.isEmpty()) {
-                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
+                            Text(if (isAr) "لم تتوفر بعد" else "Not available yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             match.awayLineup.forEach { player ->
-                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                                Text("• $player", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -387,47 +398,84 @@ fun ShimmerMatchListLoader(modifier: Modifier = Modifier) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        repeat(3) {
+        repeat(4) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .shimmer(shimmerInstance)
-                    .background(Color.Gray.copy(alpha = 0.15f))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
             )
         }
     }
 }
 
 @Composable
-fun MatchErrorState(message: String, onRetry: () -> Unit) {
+fun MatchErrorState(message: String, isAr: Boolean, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onRetry) { Text("Retry Load") }
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Error",
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = message, 
+            color = MaterialTheme.colorScheme.error, 
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) { 
+            Text(
+                text = if (isAr) "إعادة المحاولة" else "Retry Sync",
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.labelLarge
+            ) 
+        }
     }
 }
 
 @Composable
 fun MatchEmptyState(isAr: Boolean) {
-    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during data absences
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()), 
-        contentAlignment = Alignment.Center
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp), 
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Icon(
+            imageVector = Icons.Default.EventBusy,
+            contentDescription = "No Matches",
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = if (isAr) "لا توجد مباريات متاحة في تاريخ هذا اليوم." else "No matches scheduled for this specific date.",
-            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (isAr) "يرجى التحقق من الأيام الأخرى أو سحب الشاشة للتحديث." else "Check other days or pull down to refresh.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
