@@ -11,6 +11,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -25,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.core.os.LocaleListCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -53,6 +54,32 @@ import sa.mondial.world.navigation.DashboardDestination
 import timber.log.Timber
 import javax.inject.Inject
 
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFD4AF37),
+    secondary = Color(0xFF1E5E47),
+    background = Color(0xFF111C24),
+    surface = Color(0xFF18222C),
+    onPrimary = Color(0xFF111C24),
+    onSecondary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF24313D),
+    onSurfaceVariant = Color(0xFF94A3B8)
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = Color(0xFFC59B27),
+    secondary = Color(0xFF114232),
+    background = Color(0xFFF4F6F8),
+    surface = Color.White,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = Color(0xFF111C24),
+    onSurface = Color(0xFF111C24),
+    surfaceVariant = Color(0xFFE2E8F0),
+    onSurfaceVariant = Color(0xFF64748B)
+)
+
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -72,9 +99,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Fixed Cleanly: Re-enabled native system splash engine to cleanly handle the cold start lifecycle
-        //installSplashScreen()
-        
         super.onCreate(savedInstanceState)
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
@@ -104,11 +128,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
+            val themePref by localizationManager.themePreference.collectAsState(initial = ThemePreference.SYSTEM)
+            val useDarkTheme = when (themePref) {
+                ThemePreference.DARK -> true
+                ThemePreference.LIGHT -> false
+                ThemePreference.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            val currentColorScheme = if (useDarkTheme) DarkColorScheme else LightColorScheme
+
             MaterialTheme(
-                colorScheme = MaterialTheme.colorScheme.copy(
-                    background = Color.Transparent,
-                    surface = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                )
+                colorScheme = currentColorScheme
             ) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -122,7 +152,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // Fixed Cleanly: Streamlined configuration to bypass video player overhead and jump straight to loaded main frame
                 Box(modifier = Modifier.fillMaxSize()) {
                     Image(
                         painter = painterResource(id = sa.mondial.world.core.ui.R.drawable.app_bg),
@@ -130,6 +159,9 @@ class MainActivity : AppCompatActivity() {
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+
+                    val overlayColor = if (useDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.75f)
+                    Box(modifier = Modifier.fillMaxSize().background(overlayColor))
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -230,10 +262,10 @@ class MainActivity : AppCompatActivity() {
                                 val matchId = route.matchId
                                 val viewModel: MatchDetailsViewModel = hiltViewModel(backStackEntry)
                                 MatchDetailsScreen(
-                                        viewModel = viewModel,
-                                        onNavigateBack = {
-                                            navController.popBackStack()
-                                        }
+                                    viewModel = viewModel,
+                                    onNavigateBack = {
+                                        navController.popBackStack()
+                                    }
                                 )
                             }
                         }
