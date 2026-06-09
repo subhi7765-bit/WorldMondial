@@ -46,9 +46,9 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
 
-    implementation(libs.retrofit)
+    // FIXED: Matched exactly with the definitions in libs.versions.toml
+    implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
     implementation(libs.kotlinx.serialization.json)
