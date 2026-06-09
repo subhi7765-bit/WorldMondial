@@ -29,7 +29,6 @@ class MatchDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // SavedStateHandle parameters automatically synchronized via Jetpack Type-Safe Navigation 2.8
     private val matchId: String = savedStateHandle.get<String>("matchId") ?: "match-01"
 
     private val _uiState = MutableStateFlow<UiState<MatchDetails>>(UiState.Loading)
@@ -81,15 +80,15 @@ class MatchDetailsViewModel @Inject constructor(
             try {
                 val details = getMatchDetailsUseCase(matchId)
                 
-                // If timestamp age is greater than 60 seconds, display the offline warning banner
-                val age = Duration.between(details.utcTime, Instant.now()).toMillis()
+                val currentMillis = System.currentTimeMillis()
+                val age = currentMillis - details.lastSyncTimeMs
                 val isStaleCacheFallback = age > 60000L
 
-                if (isStaleCacheFallback) {
+                if (isStaleCacheFallback && details.lastSyncTimeMs > 0L) {
                     _isOfflineWithCache.value = true
                     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                         .withZone(ZoneId.systemDefault())
-                    _lastSyncTimestamp.value = formatter.format(details.utcTime)
+                    _lastSyncTimestamp.value = formatter.format(Instant.ofEpochMilli(details.lastSyncTimeMs))
                     analyticsTracker.logEvent("match_details_offline_cache_loaded", mapOf("matchId" to matchId))
                 } else {
                     _isOfflineWithCache.value = false
@@ -98,13 +97,13 @@ class MatchDetailsViewModel @Inject constructor(
                 }
 
                 _uiState.value = UiState.Success(details)
-                Timber.i("MatchDetailsViewModel: Successfully retrieved details for ${matchId}")
+                Timber.i("MatchDetailsViewModel: Successfully retrieved details for $matchId")
             } catch (throwable: Throwable) {
                 val isAr = currentLanguage.value == "ar"
                 val displayMsg = ErrorHandler.getLocalisedMessage(throwable, isAr)
                 _uiState.value = UiState.Error(throwable, displayMsg)
                 analyticsTracker.logError("Failed to retrieve details for $matchId: ${throwable.message}", false)
-                Timber.e(throwable, "MatchDetailsViewModel: Failed to retrieve details for ${matchId}")
+                Timber.e(throwable, "MatchDetailsViewModel: Failed to retrieve details for $matchId")
             }
         }
     }
