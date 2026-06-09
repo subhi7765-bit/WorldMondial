@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +10,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics") // Added Cleanly: Mandatory plugin definition to prevent instant runtime initialization crash
+}
+
+// Load local.properties safely for local development environments
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -23,11 +33,23 @@ android {
         testInstrumentationRunner = "sa.mondial.world.core.testing.CustomTestRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // Pointing to the keystore decoded by GitHub Actions
+            storeFile = file("worldmondial.jks")
+            // Fetching credentials securely from Environment Variables (GitHub Actions) or local.properties
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            // Apply the production release signing config
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
