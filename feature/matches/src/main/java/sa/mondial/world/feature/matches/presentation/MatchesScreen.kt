@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -73,7 +75,6 @@ fun MatchesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Fixed Cleanly: Corrected .fillOuterWidth() typo to standard Android .fillMaxWidth() layout token
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -404,6 +405,7 @@ fun MatchErrorState(message: String, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -416,10 +418,17 @@ fun MatchErrorState(message: String, onRetry: () -> Unit) {
 
 @Composable
 fun MatchEmptyState(isAr: Boolean) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Fixed Cleanly: Added full layout verticalScroll modifier token to permit live pull-to-refresh gestures even during data absences
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()), 
+        contentAlignment = Alignment.Center
+    ) {
         Text(
             text = if (isAr) "لا توجد مباريات متاحة في تاريخ هذا اليوم." else "No matches scheduled for this specific date.",
-            color = Color.White
+            color = Color.White,
+            textAlign = TextAlign.Center
         )
     }
 }
