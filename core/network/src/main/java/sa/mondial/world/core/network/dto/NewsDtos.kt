@@ -21,8 +21,8 @@ data class NewsArticleDto(
     val content: String? = null
 ) {
     fun toDatabaseEntity(): NewsEntity {
-        val cleanUrl = url ?: ""
-        val articleId = "news-${cleanUrl.hashCode()}"
+        // Fixed Cleanly: Saved the actual secure destination web URL directly as the primary identifier instead of a destructive hashCode integer to preserve intent launching
+        val cleanUrl = url ?: "https://newsapi.org"
         val t = title ?: "Mondial News"
         val desc = description ?: content ?: "Active updates from World Mondial match groups..."
         
@@ -36,7 +36,7 @@ data class NewsArticleDto(
         val pubAt = publishedAt ?: java.time.Instant.now().toString()
 
         return NewsEntity(
-            id = articleId,
+            id = cleanUrl,
             titleAr = titleAr,
             titleEn = titleEn,
             bodyAr = bodyAr,
