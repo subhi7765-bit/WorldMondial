@@ -57,7 +57,7 @@ fun MatchesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isAr) "مباريات اليوم" else "Today's Matches", fontWeight = FontWeight.Bold) }, // Fixed Cleanly: Updated header string to reflect inclusive daily schedule as requested
+                title = { Text(if (isAr) "مباريات اليوم" else "Today's Matches", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xE6111C24), 
                     titleContentColor = Color(0xFFD4AF37) 
@@ -73,10 +73,10 @@ fun MatchesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Elegant Glassmorphism Horizontal Day Selector Bar with matching Golden Accent layout configurations
+            // Fixed Cleanly: Corrected .fillOuterWidth() typo to standard Android .fillMaxWidth() layout token
             Row(
                 modifier = Modifier
-                    .fillOuterWidth()
+                    .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .background(Color(0x1AFFFFFF), RoundedCornerShape(24.dp))
                     .padding(4.dp),
