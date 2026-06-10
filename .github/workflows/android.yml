@@ -18,6 +18,14 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Inject Secrets into local.properties
+        run: |
+          echo "FOOTBALL_API_KEY=${{ secrets.FOOTBALL_API_KEY }}" >> local.properties
+          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}" >> local.properties
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> local.properties
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> local.properties
+
       - name: Decode Production Keystore File
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/worldmondial.jks
@@ -28,11 +36,6 @@ jobs:
       - name: Assemble Production Release APK
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
-          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Archive and Upload Compiled APK
