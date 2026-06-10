@@ -81,7 +81,7 @@ fun NewsScreen(
                 }
                 is UiState.Error -> {
                     NewsErrorState(
-                        message = state.message,
+                        message = state.displayMessage,
                         isAr = isAr,
                         onRetry = { viewModel.loadMondialNews(forceRefresh = true) }
                     )
