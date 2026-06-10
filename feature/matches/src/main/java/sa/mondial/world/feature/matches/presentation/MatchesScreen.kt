@@ -61,7 +61,8 @@ fun MatchesScreen(
                     Text(
                         text = if (isAr) "مباريات اليوم" else "Today's Matches", 
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     ) 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -169,28 +170,27 @@ fun MatchesScreen(
 
 @Composable
 fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
-    var isExpanded by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier.fillMaxWidth().animateContentSize().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(if (isAr) match.roundAr else match.roundEn, color = MaterialTheme.colorScheme.primary)
+                Text(if (isAr) match.roundAr else match.roundEn, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Text(match.utcTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(if (isAr) Locale("ar") else Locale.ENGLISH)), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                Text(if (isAr) match.homeTeamNameAr else match.homeTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Right else TextAlign.Left)
+                Text(if (isAr) match.homeTeamNameAr else match.homeTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Right else TextAlign.Left, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(horizontal = 12.dp)) {
-                    Text("${match.homeScore ?: "-"} : ${match.awayScore ?: "-"}", modifier = Modifier.padding(16.dp, 6.dp), style = MaterialTheme.typography.titleLarge)
+                    Text("${match.homeScore ?: "-"} : ${match.awayScore ?: "-"}", modifier = Modifier.padding(16.dp, 6.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
-                Text(if (isAr) match.awayTeamNameAr else match.awayTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Left else TextAlign.Right)
+                Text(if (isAr) match.awayTeamNameAr else match.awayTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Left else TextAlign.Right, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             }
             if (match.matchStatus == MatchStatus.UPCOMING) {
-                Text(if (isAr) "لم تبدأ بعد" else "Upcoming", color = MaterialTheme.colorScheme.secondary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp))
+                Text(if (isAr) "لم تبدأ بعد" else "Upcoming", color = MaterialTheme.colorScheme.secondary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -208,20 +208,22 @@ fun ShimmerMatchListLoader() {
 
 @Composable
 fun MatchErrorState(message: String, isAr: Boolean, onRetry: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Default.Warning, contentDescription = "Error", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+        Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetry) { Text(if (isAr) "إعادة المحاولة" else "Retry") }
+        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text(if (isAr) "إعادة المحاولة" else "Retry", color = MaterialTheme.colorScheme.onPrimary) }
     }
 }
 
 @Composable
 fun MatchEmptyState(isAr: Boolean) {
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Default.Info, contentDescription = "Empty", modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
         Spacer(modifier = Modifier.height(16.dp))
-        Text(if (isAr) "لا توجد مباريات" else "No matches", textAlign = TextAlign.Center)
+        Text(if (isAr) "لا توجد مباريات متاحة في تاريخ هذا اليوم." else "No matches scheduled for this specific date.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(if (isAr) "يرجى التحقق من الأيام الأخرى أو سحب الشاشة للتحديث." else "Check other days or pull down to refresh.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
