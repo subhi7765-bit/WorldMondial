@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -87,10 +86,13 @@ fun MatchDetailsScreen(
                 }
                 is UiState.Error -> {
                     MatchDetailsError(
-                        message = state.message,
+                        message = state.displayMessage,
                         isAr = isAr,
                         onRetry = { viewModel.loadDetails() }
                     )
+                }
+                is UiState.Empty -> {
+                    Box(modifier = Modifier.fillMaxSize())
                 }
                 is UiState.Success -> {
                     val details = state.data
@@ -143,7 +145,7 @@ fun OfflineWarningBanner(lastSyncTime: String?, isAr: Boolean) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.CloudOff,
+                imageVector = Icons.Default.Warning,
                 contentDescription = "Offline",
                 tint = MaterialTheme.colorScheme.onErrorContainer
             )
