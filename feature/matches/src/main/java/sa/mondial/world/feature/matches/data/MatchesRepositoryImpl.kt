@@ -3,10 +3,6 @@ package sa.mondial.world.feature.matches.data
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.map
 import sa.mondial.world.core.common.Result
 import sa.mondial.world.core.data.BaseRepository
 import sa.mondial.world.core.di.IoDispatcher
@@ -18,7 +14,6 @@ import javax.inject.Inject
 
 class MatchesRepositoryImpl @Inject constructor(
     private val localDatabaseDao: MatchDao,
-    private val remoteKeysDao: sa.mondial.world.core.database.dao.MatchRemoteKeysDao,
     private val remoteNetworkApi: MatchApiService,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : BaseRepository(ioDispatcher), MatchesRepository {
@@ -61,21 +56,6 @@ class MatchesRepositoryImpl @Inject constructor(
                 else -> dbResult
             }
         }.flowOn(ioDispatcher)
-    }
-
-    @OptIn(androidx.paging.ExperimentalPagingApi::class)
-    override fun getPagedMatches(forceRefresh: Boolean): Flow<PagingData<Match>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 10,
-                enablePlaceholders = false,
-                prefetchDistance = 2
-            ),
-            remoteMediator = MatchRemoteMediator(localDatabaseDao, remoteKeysDao, remoteNetworkApi, forceRefresh),
-            pagingSourceFactory = { MatchDbPagingSource(localDatabaseDao) }
-        ).flow.map { pagingData ->
-            pagingData.map { entity -> entity.toDomainModel() }
-        }
     }
 
     override suspend fun getMatchDetails(matchId: String): sa.mondial.world.core.domain.MatchDetails {
