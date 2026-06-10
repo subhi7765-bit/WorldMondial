@@ -14,8 +14,9 @@ interface MatchDao {
     @Query("SELECT * FROM matches ORDER BY utcTime")
     fun getCachedMatchesFlow(): Flow<List<MatchEntity>>
 
-    @Query("SELECT * FROM matches ORDER BY utcTime LIMIT :limit OFFSET :offset")
-    suspend fun getPagedMatches(limit: Int, offset: Int): List<MatchEntity>
+    // THE FIX: Added database-level date filtering using SQL LIKE
+    @Query("SELECT * FROM matches WHERE utcTime LIKE :datePrefix || '%' ORDER BY utcTime LIMIT :limit OFFSET :offset")
+    suspend fun getPagedMatchesByDate(limit: Int, offset: Int, datePrefix: String): List<MatchEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatchesBatch(entities: List<MatchEntity>)
