@@ -40,7 +40,6 @@ class MatchesViewModel @Inject constructor(
         initialValue = "ar"
     )
 
-    // THE FIX: We use a standard combined Flow to filter the list cleanly without Paging conflicts
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UiState<List<Match>>> = _forceRefreshTrigger
         .flatMapLatest { force -> getMatchesUseCase(force) }
@@ -50,7 +49,6 @@ class MatchesViewModel @Inject constructor(
                 is Result.Loading -> UiState.Loading
                 is Result.Success -> {
                     _isRefreshing.value = false
-                    // Real-time filtering based on the selected day chip
                     val filteredMatches = result.data.filter { match ->
                         val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
                         val today = LocalDate.now(ZoneId.systemDefault())
