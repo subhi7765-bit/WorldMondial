@@ -1,16 +1,16 @@
 package sa.mondial.world.feature.news.presentation
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -19,18 +19,13 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
-import androidx.paging.compose.collectAsLazyPagingItems
-import com.valentinilk.shimmer.rememberShimmer
-import com.valentinilk.shimmer.shimmer
-import com.valentinilk.shimmer.ShimmerBounds
 import sa.mondial.world.core.domain.News
+import sa.mondial.world.core.common.UiState
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -47,13 +42,9 @@ fun NewsScreen(
     val isAr = language == "ar"
 
     val listState = rememberLazyListState()
-    val pagedNews = viewModel.pagedNewsFlow.collectAsLazyPagingItems()
+    val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
-
-    LaunchedEffect(Unit) {
-        viewModel.loadNews(forceRefresh = false)
-    }
 
     Scaffold(
         topBar = {
@@ -81,58 +72,36 @@ fun NewsScreen(
                 .pullToRefresh(
                     isRefreshing = isRefreshing,
                     state = pullToRefreshState,
-                    onRefresh = {
-                        viewModel.loadNews(forceRefresh = true)
-                        pagedNews.refresh()
-                    }
+                    onRefresh = { viewModel.loadMondialNews(forceRefresh = true) }
                 )
         ) {
-            when {
-                pagedNews.loadState.refresh is LoadState.Loading -> {
-                    NewsShimmerLoader()
+            when (val state = uiState) {
+                is UiState.Loading -> {
+                    NewsSimpleLoader()
                 }
-                pagedNews.loadState.refresh is LoadState.Error -> {
-                    val error = (pagedNews.loadState.refresh as LoadState.Error).error
+                is UiState.Error -> {
                     NewsErrorState(
-                        message = error.localizedMessage ?: "Network Sync Error",
+                        message = state.message,
                         isAr = isAr,
-                        onRetry = { pagedNews.retry() }
+                        onRetry = { viewModel.loadMondialNews(forceRefresh = true) }
                     )
                 }
-                pagedNews.itemCount == 0 -> {
+                is UiState.Empty -> {
                     NewsEmptyState(isAr = isAr)
                 }
-                else -> {
+                is UiState.Success -> {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(pagedNews.itemCount) { index ->
-                            pagedNews[index]?.let { article ->
-                                NewsCard(
-                                    article = article,
-                                    isAr = isAr,
-                                    onClick = { onNavigateToDetails(article.url) }
-                                )
-                            }
-                        }
-
-                        if (pagedNews.loadState.append is LoadState.Loading) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        strokeWidth = 3.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                        items(state.data) { article ->
+                            NewsCard(
+                                article = article,
+                                isAr = isAr,
+                                onClick = { onNavigateToDetails(article.url) }
+                            )
                         }
                     }
                 }
@@ -166,9 +135,7 @@ fun NewsCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -179,15 +146,15 @@ fun NewsCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (isAr) article.sourceNameAr else article.sourceNameEn,
+                        text = if (isAr) article.categoryAr else article.categoryEn,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
 
-                val formattedTime = remember(article.publishedAt) {
-                    article.publishedAt
+                val formattedTime = remember(article.publicationDate) {
+                    article.publicationDate
                         .atZone(ZoneId.systemDefault())
                         .format(
                             DateTimeFormatter
@@ -217,7 +184,7 @@ fun NewsCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (isAr) article.descriptionAr else article.descriptionEn,
+                text = if (isAr) article.bodyAr else article.bodyEn,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,
@@ -237,24 +204,13 @@ fun NewsCard(
 }
 
 @Composable
-fun NewsShimmerLoader() {
-    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.View)
+fun NewsSimpleLoader() {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        repeat(5) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .shimmer(shimmerInstance)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            )
-        }
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -306,7 +262,7 @@ fun NewsEmptyState(isAr: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.Article,
+            imageVector = Icons.Default.Info,
             contentDescription = "No News",
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
