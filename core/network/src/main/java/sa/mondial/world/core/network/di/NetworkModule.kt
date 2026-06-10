@@ -10,17 +10,12 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import sa.mondial.world.core.network.BuildConfig
 import sa.mondial.world.core.network.api.MatchApiService
 import sa.mondial.world.core.network.api.NewsApiService
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
-
-private const val FOOTBALL_API_KEY = "3615f4ca3c1541bb9af73d1954580f53" 
-private const val MATCH_BASE_URL = "https://api.football-data.org/v4/"
-
-private const val NEWS_API_KEY = "92c5b14effa14790867afb66abd38903"
-private const val NEWS_BASE_URL = "https://newsapi.org/"
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -60,7 +55,8 @@ object NetworkModule {
             .addInterceptor(interceptor)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("X-Auth-Token", FOOTBALL_API_KEY)
+                    // SECURED: Reading securely from BuildConfig instead of hardcoded strings
+                    .header("X-Auth-Token", BuildConfig.FOOTBALL_API_KEY)
                     .header("User-Agent", "WorldMondialApp/1.0")
                     .build()
                 chain.proceed(request)
@@ -77,7 +73,8 @@ object NetworkModule {
             .addInterceptor(interceptor)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("X-Api-Key", NEWS_API_KEY)
+                    // SECURED: Reading securely from BuildConfig instead of hardcoded strings
+                    .header("X-Api-Key", BuildConfig.NEWS_API_KEY)
                     .header("User-Agent", "WorldMondialApp/1.0")
                     .build()
                 chain.proceed(request)
@@ -90,7 +87,7 @@ object NetworkModule {
     fun provideMatchRetrofit(@MatchHttpClient okHttpClient: OkHttpClient, json: Json): Retrofit {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl(MATCH_BASE_URL)
+            .baseUrl(BuildConfig.FOOTBALL_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
@@ -102,7 +99,7 @@ object NetworkModule {
     fun provideNewsRetrofit(@NewsHttpClient okHttpClient: OkHttpClient, json: Json): Retrofit {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl(NEWS_BASE_URL)
+            .baseUrl(BuildConfig.NEWS_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
