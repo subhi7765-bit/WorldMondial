@@ -11,7 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -85,7 +85,6 @@ fun MatchesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Animated Day Selector Tab
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -459,7 +458,7 @@ fun MatchEmptyState(isAr: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.EventBusy,
+            imageVector = Icons.Default.Info,
             contentDescription = "No Matches",
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
