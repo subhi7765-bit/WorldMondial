@@ -9,8 +9,8 @@
     <application
         android:name=".WorldMondialApplication"
         android:allowBackup="false"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
+        android:icon="@mipmap/my_adaptive_icon"
+        android:roundIcon="@mipmap/my_adaptive_icon"
         android:label="World Mondial"
         android:supportsRtl="true"
         android:theme="@style/Theme.WorldMondial"
