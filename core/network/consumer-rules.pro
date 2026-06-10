@@ -1,0 +1,1 @@
+-keep class sa.mondial.world.core.network.dto.** { *; }
