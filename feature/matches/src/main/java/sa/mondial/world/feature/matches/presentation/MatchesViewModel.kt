@@ -2,12 +2,9 @@ package sa.mondial.world.feature.matches.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.paging.PagingData
-import androidx.paging.cachedIn
-import androidx.paging.filter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import sa.mondial.world.core.common.ErrorHandler
 import sa.mondial.world.core.common.Result
 import sa.mondial.world.core.common.UiState
@@ -20,7 +17,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
-// Fixed Cleanly: Added isolated enum structure to govern the dynamic local date filtering pipeline
 enum class SelectedDay { YESTERDAY, TODAY, TOMORROW }
 
 @HiltViewModel
@@ -30,35 +26,13 @@ class MatchesViewModel @Inject constructor(
     private val analyticsTracker: AnalyticsTracker
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<UiState<List<Match>>>(UiState.Loading)
-    val uiState: StateFlow<UiState<List<Match>>> = _uiState.asStateFlow()
-
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _forceRefreshState = MutableStateFlow(false)
-
-    // Dynamic reactive state to hold the user's active filter chip day selection
     private val _selectedDay = MutableStateFlow(SelectedDay.TODAY)
     val selectedDay: StateFlow<SelectedDay> = _selectedDay.asStateFlow()
 
-    // Advanced Paging 3 combination flow that intercepts and filters payload data safely on the client side using Java Time APIs
-    val pagedMatchesFlow: Flow<PagingData<Match>> = combine(_forceRefreshState, _selectedDay) { force, day ->
-        force to day
-    }.flatMapLatest { (force, day) ->
-        getMatchesUseCase.getPaged(force).map { pagingData ->
-            pagingData.filter { match ->
-                val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
-                val today = LocalDate.now(ZoneId.systemDefault())
-                val targetDate = when (day) {
-                    SelectedDay.YESTERDAY -> today.minusDays(1)
-                    SelectedDay.TODAY -> today
-                    SelectedDay.TOMORROW -> today.plusDays(1)
-                }
-                matchLocalDate == targetDate
-            }
-        }
-    }.cachedIn(viewModelScope)
+    private val _forceRefreshTrigger = MutableStateFlow(false)
 
     val currentLanguage = localizationManager.currentLanguage.stateIn(
         scope = viewModelScope,
@@ -66,9 +40,43 @@ class MatchesViewModel @Inject constructor(
         initialValue = "ar"
     )
 
+    // THE FIX: We use a standard combined Flow to filter the list cleanly without Paging conflicts
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<UiState<List<Match>>> = _forceRefreshTrigger
+        .flatMapLatest { force -> getMatchesUseCase(force) }
+        .combine(_selectedDay) { result, day ->
+            val isAr = currentLanguage.value == "ar"
+            when (result) {
+                is Result.Loading -> UiState.Loading
+                is Result.Success -> {
+                    _isRefreshing.value = false
+                    // Real-time filtering based on the selected day chip
+                    val filteredMatches = result.data.filter { match ->
+                        val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                        val today = LocalDate.now(ZoneId.systemDefault())
+                        val targetDate = when (day) {
+                            SelectedDay.YESTERDAY -> today.minusDays(1)
+                            SelectedDay.TODAY -> today
+                            SelectedDay.TOMORROW -> today.plusDays(1)
+                        }
+                        matchLocalDate == targetDate
+                    }
+                    
+                    if (filteredMatches.isEmpty()) UiState.Empty
+                    else UiState.Success(filteredMatches, isFromCache = false)
+                }
+                is Result.Error -> {
+                    _isRefreshing.value = false
+                    val msg = ErrorHandler.getLocalisedMessage(result.exception, isAr)
+                    Timber.e(result.exception, "MatchesViewModel: Sync failed.")
+                    UiState.Error(result.exception, msg)
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+
     init {
         analyticsTracker.logScreenView("MatchesScreen")
-        loadMondialMatches(forceRefresh = false)
     }
 
     fun selectDay(day: SelectedDay) {
@@ -77,46 +85,10 @@ class MatchesViewModel @Inject constructor(
     }
 
     fun loadMondialMatches(forceRefresh: Boolean) {
-        viewModelScope.launch {
-            if (forceRefresh) {
-                _isRefreshing.value = true
-                _forceRefreshState.value = true
-                analyticsTracker.logEvent("matches_pull_to_refresh", mapOf("force" to "true"))
-            }
-            
-            getMatchesUseCase(forceRefresh)
-                .collect { result ->
-                    val isAr = currentLanguage.value == "ar"
-                    when (result) {
-                        is Result.Loading -> {
-                            if (!forceRefresh) _uiState.value = UiState.Loading
-                        }
-                        is Result.Success -> {
-                            _isRefreshing.value = false
-                            if (result.data.isEmpty()) {
-                                _uiState.value = UiState.Empty
-                            } else {
-                                _uiState.value = UiState.Success(
-                                    data = result.data,
-                                    isFromCache = !forceRefresh
-                                )
-                            }
-                        }
-                        is Result.Error -> {
-                            _isRefreshing.value = false
-                            val message = ErrorHandler.getLocalisedMessage(result.exception, isAr)
-                            analyticsTracker.logError("Matches sync failed: ${result.exception.message}", false)
-                            Timber.e(result.exception, "MatchesViewModel: Sync failed.")
-                            
-                            val currentState = _uiState.value
-                            if (currentState is UiState.Success) {
-                                _uiState.value = currentState.copy(offlineBannerMessage = message)
-                            } else {
-                                _uiState.value = UiState.Error(result.exception, message)
-                            }
-                        }
-                    }
-                }
+        if (forceRefresh) {
+            _isRefreshing.value = true
+            analyticsTracker.logEvent("matches_pull_to_refresh", mapOf("force" to "true"))
         }
+        _forceRefreshTrigger.value = forceRefresh
     }
 }
