@@ -1,8 +1,8 @@
 package sa.mondial.world.feature.matches.data
 
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -12,13 +12,8 @@ import sa.mondial.world.core.data.BaseRepository
 import sa.mondial.world.core.di.IoDispatcher
 import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.database.dao.MatchDao
-import sa.mondial.world.core.database.entity.MatchEntity
-import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.network.api.MatchApiService
-import sa.mondial.world.core.network.dto.MatchDto
-import sa.mondial.world.core.network.dto.MatchDetailsDto
 import timber.log.Timber
-import java.time.Instant
 import javax.inject.Inject
 
 class MatchesRepositoryImpl @Inject constructor(
@@ -37,7 +32,6 @@ class MatchesRepositoryImpl @Inject constructor(
             try {
                 Timber.i("MatchesRepository: Initializing network sync stream...")
                 val networkResponse = remoteNetworkApi.getMatches()
-                // Fixed Cleanly: Extracted the interior nested matches array collection from the response object wrapper
                 val dbEntities = networkResponse.matches.map { it.toDatabaseEntity() }
                 localDatabaseDao.refreshAllMatches(dbEntities)
                 Timber.i("MatchesRepository: Room Cache updated successfully.")
@@ -70,7 +64,7 @@ class MatchesRepositoryImpl @Inject constructor(
     }
 
     @OptIn(androidx.paging.ExperimentalPagingApi::class)
-    override fun getPagedMatches(forceRefresh: Boolean): Flow<PagingData<sa.mondial.world.core.domain.Match>> {
+    override fun getPagedMatches(forceRefresh: Boolean): Flow<PagingData<Match>> {
         return Pager(
             config = PagingConfig(
                 pageSize = 10,
@@ -93,7 +87,7 @@ class MatchesRepositoryImpl @Inject constructor(
                 localDatabaseDao.insertMatchDetails(dbEntity)
                 dbEntity.toDomainModel()
             } catch (throwable: Throwable) {
-                Timber.e(throwable, "MatchesRepositoryImpl: Network fetch failed. Attempting Room DB SOT fallback.")
+                Timber.e(throwable, "MatchesRepositoryImpl: Network fetch failed. Attempting Room DB fallback.")
                 val cached = localDatabaseDao.getMatchDetails(matchId)
                 if (cached != null) {
                     Timber.i("MatchesRepositoryImpl: Room Cache HIT for details of $matchId")
