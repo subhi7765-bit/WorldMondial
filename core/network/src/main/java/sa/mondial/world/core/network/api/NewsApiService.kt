@@ -6,7 +6,7 @@ import sa.mondial.world.core.network.dto.NewsResponseDto
 
 interface NewsApiService {
 
-    @GET("v2/everything")
+    @GET("everything")
     suspend fun getNews(
         @Query("q") query: String = "football OR كورة OR كأس العالم",
         @Query("language") language: String = "ar",
