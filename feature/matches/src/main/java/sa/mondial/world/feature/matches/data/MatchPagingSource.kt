@@ -5,7 +5,6 @@ import androidx.paging.LoadType
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
-import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.database.dao.MatchDao
 import sa.mondial.world.core.database.dao.MatchRemoteKeysDao
 import sa.mondial.world.core.database.entity.MatchEntity as DbMatchEntity
@@ -55,7 +54,6 @@ class MatchRemoteMediator(
 
             Timber.i("MatchRemoteMediator: Synced network results loaded for loadType=$loadType page=$page")
             
-            // Fixed Cleanly: Parsed encapsulated wrapper response and extracted the interior structural domain list array safely
             val apiResponse = remoteNetworkApi.fetchPagedMatches(page = page, limit = state.config.pageSize)
             val remoteDtos = apiResponse.matches
             val endOfPaginationReached = remoteDtos.isEmpty()
@@ -112,8 +110,10 @@ class MatchRemoteMediator(
     }
 }
 
+// THE FIX: Added DatePrefix to inject SQL filtering
 class MatchDbPagingSource(
-    private val localDatabaseDao: MatchDao
+    private val localDatabaseDao: MatchDao,
+    private val datePrefix: String 
 ) : PagingSource<Int, DbMatchEntity>() {
 
     override fun getRefreshKey(state: PagingState<Int, DbMatchEntity>): Int? {
@@ -128,7 +128,8 @@ class MatchDbPagingSource(
         return try {
             val limit = params.loadSize
             val offset = (pageKey - 1) * limit
-            val entities = localDatabaseDao.getPagedMatches(limit, offset)
+            // THE FIX: Database now correctly filters by date natively
+            val entities = localDatabaseDao.getPagedMatchesByDate(limit, offset, datePrefix)
 
             LoadResult.Page(
                 data = entities,
