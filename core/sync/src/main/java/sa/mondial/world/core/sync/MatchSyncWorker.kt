@@ -24,12 +24,11 @@ class MatchSyncWorker @AssistedInject constructor(
         return try {
             Timber.i("MatchSyncWorker: Starting background sync...")
             
-            // حساب التواريخ (من أمس إلى الغد) لضمان توافق جلب البيانات في الخلفية
+            // توسيع النافذة لـ 7 أيام لتفادي فروقات الـ UTC
             val today = LocalDate.now(ZoneId.systemDefault())
-            val dateFrom = today.minusDays(1).toString()
-            val dateTo = today.plusDays(1).toString()
+            val dateFrom = today.minusDays(3).toString()
+            val dateTo = today.plusDays(3).toString()
 
-            // إرسال التواريخ كما يطلب السيرفر الآن
             val response = matchApiService.getMatches(dateFrom = dateFrom, dateTo = dateTo)
             val entities = response.matches.map { it.toDatabaseEntity() }
             
