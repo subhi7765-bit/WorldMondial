@@ -13,6 +13,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.hilt.work.HiltWorkerFactory
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.decode.SvgDecoder // استيراد فك تشفير المتجهات
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -27,7 +30,7 @@ import java.util.Locale
 import javax.inject.Inject
 
 @HiltAndroidApp
-class WorldMondialApplication : Application(), WorkConfiguration.Provider {
+class WorldMondialApplication : Application(), WorkConfiguration.Provider, ImageLoaderFactory {
 
     @Inject
     lateinit var localizationManager: LocalizationManager
@@ -40,17 +43,23 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
+    // تفعيل محرك Coil لقراءة أعلام الدول وصور SVG بسلاسة
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
+
     override fun onCreate() {
-        // Production Runtime Crash Interceptor Engine
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             val stackTrace = android.util.Log.getStackTraceString(throwable)
             val logText = "CRASH REPORT\nThread: ${thread.name}\n\n$stackTrace"
             try {
                 val file = File(getExternalFilesDir(null), "crash_log.txt")
                 file.writeText(logText)
-            } catch (e: Exception) {
-                // Fail-safe fallback to prevent blocking native OS handler
-            }
+            } catch (e: Exception) {}
             android.os.Process.killProcess(android.os.Process.myPid())
             java.lang.System.exit(10)
         }
@@ -76,7 +85,6 @@ class WorldMondialApplication : Application(), WorkConfiguration.Provider {
                 val currentLanguageTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
                 if (currentLanguageTags != savedLanguage) {
                     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
-                    Timber.i("WorldMondialApplication: Locale set to $savedLanguage")
                 }
             }
         }
