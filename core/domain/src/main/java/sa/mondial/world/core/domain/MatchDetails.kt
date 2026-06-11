@@ -16,6 +16,9 @@ data class LineupPlayer(
 
 data class MatchDetails(
     val id: String,
+    val competitionNameAr: String = "", // جديد: اسم البطولة عربي
+    val competitionNameEn: String = "", // جديد: اسم البطولة إنجليزي
+    val competitionEmblem: String = "", // جديد: شعار البطولة
     val homeTeamNameAr: String,
     val homeTeamNameEn: String,
     val homeTeamFlagUrl: String,
