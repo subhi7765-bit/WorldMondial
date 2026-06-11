@@ -49,7 +49,11 @@ object NetworkModule {
     @Singleton
     @MatchHttpClient
     fun provideMatchOkHttpClient(): OkHttpClient {
-        val interceptor = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        // SECURED: Log only in Debug mode. Disable in Production (Release) to prevent API Key leaks.
+        val interceptor = HttpLoggingInterceptor().apply { 
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE 
+        }
+        
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
@@ -67,7 +71,11 @@ object NetworkModule {
     @Singleton
     @NewsHttpClient
     fun provideNewsOkHttpClient(): OkHttpClient {
-        val interceptor = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        // SECURED: Log only in Debug mode. Disable in Production (Release) to prevent API Key leaks.
+        val interceptor = HttpLoggingInterceptor().apply { 
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE 
+        }
+        
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(interceptor)
