@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage // استيراد الصور
+import coil.compose.AsyncImage 
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.ShimmerBounds
@@ -184,7 +184,6 @@ fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             
-            // التصميم الفخم الجديد: شعار -> نتيجة -> شعار
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 
                 // الفريق الأول (صاحب الأرض)
@@ -213,7 +212,9 @@ fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
                         style = MaterialTheme.typography.titleLarge, 
                         fontWeight = FontWeight.Bold, 
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
                 
@@ -235,9 +236,28 @@ fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
                     )
                 }
             }
-            if (match.matchStatus == MatchStatus.UPCOMING) {
-                Text(if (isAr) "لم تبدأ بعد" else "Upcoming", color = MaterialTheme.colorScheme.secondary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+
+            // حالات المباراة (مباشر، بين الشوطين، انتهت، لم تبدأ)
+            val statusText = when (match.matchStatus) {
+                MatchStatus.LIVE -> if (isAr) "مباشر الآن" else "LIVE"
+                MatchStatus.HALF_TIME -> if (isAr) "بين الشوطين" else "Half-Time"
+                MatchStatus.FINISHED -> if (isAr) "انتهت" else "Finished"
+                MatchStatus.UPCOMING -> if (isAr) "لم تبدأ بعد" else "Upcoming"
             }
+            
+            val statusColor = when (match.matchStatus) {
+                MatchStatus.LIVE -> MaterialTheme.colorScheme.error // أحمر
+                MatchStatus.HALF_TIME -> Color(0xFFE67E22) // برتقالي
+                else -> MaterialTheme.colorScheme.primary // أزرق/أساسي
+            }
+            
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.labelMedium,
+                color = statusColor,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp)
+            )
         }
     }
 }
