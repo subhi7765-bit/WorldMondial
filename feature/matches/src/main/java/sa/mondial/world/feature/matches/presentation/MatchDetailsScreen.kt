@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage // استيراد الأعلام
+import coil.compose.AsyncImage 
 import com.valentinilk.shimmer.shimmer
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.LineupPlayer
@@ -110,6 +110,11 @@ fun MatchDetailsScreen(
                             }
                         }
 
+                        // اللمسة الجمالية: رأس البطولة (شعار واسم الكأس/الدوري)
+                        item {
+                            CompetitionHeader(details = details, isAr = isAr)
+                        }
+
                         item {
                             ScoreboardCard(details = details, isAr = isAr)
                         }
@@ -128,6 +133,33 @@ fun MatchDetailsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+// تصميم رأس البطولة الفخم
+@Composable
+fun CompetitionHeader(details: MatchDetails, isAr: Boolean) {
+    val compName = if (isAr) details.competitionNameAr else details.competitionNameEn
+    if (compName.isNotEmpty() && compName != "Unknown Competition") {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (details.competitionEmblem.isNotEmpty()) {
+                AsyncImage(
+                    model = details.competitionEmblem,
+                    contentDescription = "Competition Emblem",
+                    modifier = Modifier.size(56.dp).padding(bottom = 8.dp)
+                )
+            }
+            Text(
+                text = compName,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
