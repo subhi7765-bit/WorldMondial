@@ -105,9 +105,9 @@ dependencies {
     // Core SplashScreen API library dependency
     implementation("androidx.core:core-splashscreen:1.0.1")
     
-    // Firebase Ecosystem Delivery Services
-    implementation("com.google.firebase:firebase-messaging:24.0.0")
-    implementation("com.google.firebase:firebase-crashlytics:19.0.0")
+    // Firebase Ecosystem Delivery Services (SECURED: Versions removed to let BOM handle them)
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-analytics-ktx")
 }
