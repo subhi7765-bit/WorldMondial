@@ -5,7 +5,6 @@ import sa.mondial.world.core.database.entity.MatchEntity
 import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.domain.LineupPlayer
 
-// 1. DTOs to match the exact JSON structure from football-data.org
 @Serializable
 data class TeamDto(
     val id: Int? = null,
@@ -32,7 +31,6 @@ data class RefereeDto(
     val name: String? = null
 )
 
-// 2. The Main Match DTO corresponding to the API response
 @Serializable
 data class MatchDto(
     val id: Int,
@@ -44,20 +42,33 @@ data class MatchDto(
     val score: ScoreDto? = null
 ) {
     fun toDatabaseEntity(): MatchEntity {
-        // Safe extraction from nested objects
-        val hName = homeTeam?.name ?: "Unknown"
-        val aName = awayTeam?.name ?: "Unknown"
-        val matchStatus = status ?: "UPCOMING"
+        // قاموس الترجمة الذكي للفرق والمنتخبات (يمكنك إضافة أي فرق أخرى هنا لاحقاً)
+        val arabicDictionary = mapOf(
+            "Saudi Arabia" to "السعودية",
+            "Argentina" to "الأرجنتين",
+            "Mexico" to "المكسيك",
+            "South Africa" to "جنوب أفريقيا",
+            "Real Madrid FC" to "ريال مدريد",
+            "FC Barcelona" to "برشلونة",
+            "Manchester City FC" to "مانشستر سيتي",
+            "Liverpool FC" to "ليفربول"
+        )
+
+        val hNameEn = homeTeam?.name ?: homeTeam?.shortName ?: "Unknown"
+        val aNameEn = awayTeam?.name ?: awayTeam?.shortName ?: "Unknown"
         
+        val hNameAr = arabicDictionary[hNameEn] ?: hNameEn
+        val aNameAr = arabicDictionary[aNameEn] ?: aNameEn
+
         return MatchEntity(
             id = id.toString(),
-            homeNameAr = hName,
-            homeNameEn = hName,
-            awayNameAr = aName,
-            awayNameEn = aName,
+            homeNameAr = hNameAr,
+            homeNameEn = hNameEn,
+            awayNameAr = aNameAr,
+            awayNameEn = aNameEn,
             homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
             awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
-            status = matchStatus,
+            status = status ?: "UPCOMING",
             roundAr = "الجولة ${matchday ?: ""}",
             roundEn = "Matchday ${matchday ?: ""}",
             utcTime = utcDate ?: "",
@@ -66,7 +77,6 @@ data class MatchDto(
     }
 }
 
-// 3. Match Details DTO mapping
 @Serializable
 data class MatchDetailsDto(
     val id: Int,
@@ -80,25 +90,26 @@ data class MatchDetailsDto(
     val venue: String? = null
 ) {
     fun toDatabaseEntity(timestampMs: Long): MatchDetailsEntity {
-        val hName = homeTeam?.name ?: "Unknown"
-        val aName = awayTeam?.name ?: "Unknown"
+        val hNameEn = homeTeam?.name ?: "Unknown"
+        val aNameEn = awayTeam?.name ?: "Unknown"
+        val hNameAr = hNameEn // مبدئياً نفس الإنجليزي في التفاصيل
+        val aNameAr = aNameEn
         val hFlag = homeTeam?.crest ?: ""
         val aFlag = awayTeam?.crest ?: ""
-        val matchStatus = status ?: "UPCOMING"
         val refName = referees?.firstOrNull()?.name ?: "Unknown"
         val venueName = venue ?: "Unknown Stadium"
 
         return MatchDetailsEntity(
             id = id.toString(),
-            homeNameAr = hName,
-            homeNameEn = hName,
+            homeNameAr = hNameAr,
+            homeNameEn = hNameEn,
             homeFlag = hFlag,
-            awayNameAr = aName,
-            awayNameEn = aName,
+            awayNameAr = aNameAr,
+            awayNameEn = aNameEn,
             awayFlag = aFlag,
             homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
             awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
-            status = matchStatus,
+            status = status ?: "UPCOMING",
             roundAr = "الجولة ${matchday ?: ""}",
             roundEn = "Matchday ${matchday ?: ""}",
             venueAr = venueName,
@@ -117,7 +128,6 @@ data class MatchDetailsDto(
     }
 }
 
-// 4. Lineup Players (Fallback for future pro-tier integration)
 @Serializable
 data class LineupPlayerDto(
     val nameAr: String = "",
