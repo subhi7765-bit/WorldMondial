@@ -40,7 +40,7 @@ data class MatchDetailsEntity(
     fun toDomainModel(): MatchDetails {
         val parsedTime = DateParser.parseToInstant(timestampMs)
         
-        // THE FIX: Correctly mapping remote server statuses to prevent instant FINISHED state bug
+        // THE FIX: إصلاح مشكلة ظهور "انتهت" للمباريات القادمة
         val parsedStatus = when (status.uppercase()) {
             "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
             "FINISHED", "AWARDED" -> MatchStatus.FINISHED
