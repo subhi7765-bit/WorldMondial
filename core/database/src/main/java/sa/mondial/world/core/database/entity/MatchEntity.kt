@@ -2,7 +2,6 @@ package sa.mondial.world.core.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.Instant
 import sa.mondial.world.core.domain.Match
 import sa.mondial.world.core.domain.MatchStatus
 import sa.mondial.world.core.common.DateParser
@@ -24,7 +23,14 @@ data class MatchEntity(
 ) {
     fun toDomainModel(): Match {
         val parsedTime = DateParser.parseToInstant(utcTime)
-        val parsedStatus = try { MatchStatus.valueOf(status) } catch (e: Exception) { MatchStatus.FINISHED }
+        
+        // THE FIX: Correctly mapping remote server statuses to our Domain Enums
+        val parsedStatus = when (status.uppercase()) {
+            "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
+            "FINISHED", "AWARDED" -> MatchStatus.FINISHED
+            else -> MatchStatus.UPCOMING // Covers TIMED, SCHEDULED, POSTPONED
+        }
+        
         return Match(
             id = id,
             homeTeamNameAr = homeNameAr,
