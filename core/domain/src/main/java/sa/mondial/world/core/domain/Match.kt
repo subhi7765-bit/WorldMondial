@@ -26,6 +26,7 @@ data class Match(
     val timelineEventsEn: List<String>
 )
 
+// تمت إضافة حالة "بين الشوطين" هنا بنجاح
 enum class MatchStatus {
-    UPCOMING, LIVE, FINISHED
+    UPCOMING, LIVE, HALF_TIME, FINISHED
 }
