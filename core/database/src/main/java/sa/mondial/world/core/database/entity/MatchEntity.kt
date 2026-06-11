@@ -11,10 +11,10 @@ data class MatchEntity(
     @PrimaryKey val id: String,
     val homeNameAr: String,
     val homeNameEn: String,
-    val homeFlag: String, // جديد: رابط صورة صاحب الأرض
+    val homeFlag: String,
     val awayNameAr: String,
     val awayNameEn: String,
-    val awayFlag: String, // جديد: رابط صورة الضيف
+    val awayFlag: String,
     val homeScore: Int?,
     val awayScore: Int?,
     val status: String,
@@ -26,8 +26,10 @@ data class MatchEntity(
     fun toDomainModel(): Match {
         val parsedTime = DateParser.parseToInstant(utcTime)
         
+        // فصلنا حالة "PAUSED" لتصبح "بين الشوطين"
         val parsedStatus = when (status.uppercase()) {
-            "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
+            "IN_PLAY", "LIVE" -> MatchStatus.LIVE
+            "PAUSED" -> MatchStatus.HALF_TIME
             "FINISHED", "AWARDED" -> MatchStatus.FINISHED
             else -> MatchStatus.UPCOMING
         }
@@ -36,10 +38,10 @@ data class MatchEntity(
             id = id,
             homeTeamNameAr = homeNameAr,
             homeTeamNameEn = homeNameEn,
-            homeTeamFlagUrl = homeFlag, // تمرير الرابط للواجهة
+            homeTeamFlagUrl = homeFlag,
             awayTeamNameAr = awayNameAr,
             awayTeamNameEn = awayNameEn,
-            awayTeamFlagUrl = awayFlag, // تمرير الرابط للواجهة
+            awayTeamFlagUrl = awayFlag,
             homeScore = homeScore,
             awayScore = awayScore,
             matchStatus = parsedStatus,
