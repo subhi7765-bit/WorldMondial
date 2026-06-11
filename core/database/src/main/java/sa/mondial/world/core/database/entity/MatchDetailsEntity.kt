@@ -13,6 +13,9 @@ import sa.mondial.world.core.common.DateParser
 @TypeConverters(RoomConverters::class)
 data class MatchDetailsEntity(
     @PrimaryKey val id: String,
+    val competitionNameAr: String,
+    val competitionNameEn: String,
+    val competitionEmblem: String,
     val homeNameAr: String,
     val homeNameEn: String,
     val homeFlag: String,
@@ -40,15 +43,17 @@ data class MatchDetailsEntity(
     fun toDomainModel(): MatchDetails {
         val parsedTime = DateParser.parseToInstant(timestampMs)
         
-        // THE FIX: إصلاح مشكلة ظهور "انتهت" للمباريات القادمة
         val parsedStatus = when (status.uppercase()) {
             "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
             "FINISHED", "AWARDED" -> MatchStatus.FINISHED
-            else -> MatchStatus.UPCOMING // Covers TIMED, SCHEDULED
+            else -> MatchStatus.UPCOMING
         }
         
         return MatchDetails(
             id = id,
+            competitionNameAr = competitionNameAr,
+            competitionNameEn = competitionNameEn,
+            competitionEmblem = competitionEmblem,
             homeTeamNameAr = homeNameAr,
             homeTeamNameEn = homeNameEn,
             homeTeamFlagUrl = homeFlag,
