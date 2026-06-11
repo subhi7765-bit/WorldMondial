@@ -27,31 +27,42 @@ class MatchesRepositoryImpl @Inject constructor(
         val networkTrigger = flow {
             emit(Result.Loading)
             try {
-                Timber.i("MatchesRepository: Initializing network sync stream...")
-                
-                // الحل الجذري لمشكلة اختفاء الغد والأمس: توسيع النافذة لـ 7 أيام لتفادي فروقات الـ UTC
                 val today = LocalDate.now(ZoneId.systemDefault())
                 val dateFrom = today.minusDays(3).toString()
                 val dateTo = today.plusDays(3).toString()
 
                 val networkResponse = remoteNetworkApi.getMatches(dateFrom = dateFrom, dateTo = dateTo)
-                val dbEntities = networkResponse.matches.map { it.toDatabaseEntity() }
-                localDatabaseDao.refreshAllMatches(dbEntities)
+                val newEntities = networkResponse.matches.map { it.toDatabaseEntity() }
+                
+                // الذكاء الاصطناعي: حماية المباريات المباشرة من السيرفرات المتأخرة
+                val oldEntities = localDatabaseDao.getAllMatchesSync()
+                val mergedEntities = newEntities.map { newEntity ->
+                    val oldEntity = oldEntities.find { it.id == newEntity.id }
+                    if (oldEntity != null) {
+                        val oldIsActive = oldEntity.status in listOf("IN_PLAY", "PAUSED", "LIVE", "FINISHED")
+                        val newIsUpcoming = newEntity.status in listOf("TIMED", "SCHEDULED", "UPCOMING")
+                        
+                        if (oldIsActive && newIsUpcoming) {
+                            newEntity.copy(
+                                status = oldEntity.status,
+                                homeScore = oldEntity.homeScore,
+                                awayScore = oldEntity.awayScore
+                            )
+                        } else newEntity
+                    } else newEntity
+                }
+
+                localDatabaseDao.refreshAllMatches(mergedEntities)
                 emit(Result.Success(emptyList<Match>()))
             } catch (exception: Throwable) {
-                Timber.e(exception, "MatchesRepository: Network sync failed.")
                 emit(Result.Error(exception))
             }
         }
 
         return combine(dbFlow, networkTrigger) { dbResult, networkResult ->
             when (networkResult) {
-                is Result.Loading -> {
-                    if (dbResult is Result.Success && dbResult.data.isNotEmpty() && !forceRefresh) dbResult else Result.Loading
-                }
-                is Result.Error -> {
-                    if (dbResult is Result.Success && dbResult.data.isNotEmpty()) dbResult else Result.Error(networkResult.exception)
-                }
+                is Result.Loading -> if (dbResult is Result.Success && dbResult.data.isNotEmpty() && !forceRefresh) dbResult else Result.Loading
+                is Result.Error -> if (dbResult is Result.Success && dbResult.data.isNotEmpty()) dbResult else Result.Error(networkResult.exception)
                 else -> dbResult
             }
         }.flowOn(ioDispatcher)
@@ -61,7 +72,23 @@ class MatchesRepositoryImpl @Inject constructor(
         return withContext(ioDispatcher) {
             try {
                 val remoteDto = remoteNetworkApi.getMatchDetails(matchId)
-                val dbEntity = remoteDto.toDatabaseEntity(timestampMs = System.currentTimeMillis())
+                var dbEntity = remoteDto.toDatabaseEntity(timestampMs = System.currentTimeMillis())
+                
+                // الذكاء الاصطناعي لشاشة التفاصيل
+                val oldEntity = localDatabaseDao.getMatchDetails(matchId)
+                if (oldEntity != null) {
+                    val oldIsActive = oldEntity.status in listOf("IN_PLAY", "PAUSED", "LIVE", "FINISHED")
+                    val newIsUpcoming = dbEntity.status in listOf("TIMED", "SCHEDULED", "UPCOMING")
+                    
+                    if (oldIsActive && newIsUpcoming) {
+                        dbEntity = dbEntity.copy(
+                            status = oldEntity.status,
+                            homeScore = oldEntity.homeScore,
+                            awayScore = oldEntity.awayScore
+                        )
+                    }
+                }
+
                 localDatabaseDao.insertMatchDetails(dbEntity)
                 dbEntity.toDomainModel()
             } catch (throwable: Throwable) {
