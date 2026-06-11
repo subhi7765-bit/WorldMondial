@@ -11,8 +11,10 @@ data class MatchEntity(
     @PrimaryKey val id: String,
     val homeNameAr: String,
     val homeNameEn: String,
+    val homeFlag: String, // جديد: رابط صورة صاحب الأرض
     val awayNameAr: String,
     val awayNameEn: String,
+    val awayFlag: String, // جديد: رابط صورة الضيف
     val homeScore: Int?,
     val awayScore: Int?,
     val status: String,
@@ -24,21 +26,20 @@ data class MatchEntity(
     fun toDomainModel(): Match {
         val parsedTime = DateParser.parseToInstant(utcTime)
         
-        // THE FIX: Correctly mapping remote server statuses to our Domain Enums
         val parsedStatus = when (status.uppercase()) {
             "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
             "FINISHED", "AWARDED" -> MatchStatus.FINISHED
-            else -> MatchStatus.UPCOMING // Covers TIMED, SCHEDULED, POSTPONED
+            else -> MatchStatus.UPCOMING
         }
         
         return Match(
             id = id,
             homeTeamNameAr = homeNameAr,
             homeTeamNameEn = homeNameEn,
-            homeTeamFlagUrl = "",
+            homeTeamFlagUrl = homeFlag, // تمرير الرابط للواجهة
             awayTeamNameAr = awayNameAr,
             awayTeamNameEn = awayNameEn,
-            awayTeamFlagUrl = "",
+            awayTeamFlagUrl = awayFlag, // تمرير الرابط للواجهة
             homeScore = homeScore,
             awayScore = awayScore,
             matchStatus = parsedStatus,
