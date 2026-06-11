@@ -48,7 +48,7 @@ class MatchesViewModel @Inject constructor(
             when (result) {
                 is Result.Loading -> UiState.Loading
                 is Result.Success -> {
-                    _isRefreshing.value = false
+                    _isRefreshing.value = false // إيقاف الدائرة بنجاح
                     val filteredMatches = result.data.filter { match ->
                         val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
                         val today = LocalDate.now(ZoneId.systemDefault())
@@ -64,9 +64,8 @@ class MatchesViewModel @Inject constructor(
                     else UiState.Success(filteredMatches, isFromCache = false)
                 }
                 is Result.Error -> {
-                    _isRefreshing.value = false
+                    _isRefreshing.value = false // إيقاف الدائرة عند الخطأ
                     val msg = ErrorHandler.getLocalisedMessage(result.exception, isAr)
-                    Timber.e(result.exception, "MatchesViewModel: Sync failed.")
                     UiState.Error(result.exception, msg)
                 }
             }
@@ -79,13 +78,11 @@ class MatchesViewModel @Inject constructor(
 
     fun selectDay(day: SelectedDay) {
         _selectedDay.value = day
-        analyticsTracker.logEvent("matches_day_changed", mapOf("day" to day.name))
     }
 
     fun loadMondialMatches(forceRefresh: Boolean) {
         if (forceRefresh) {
             _isRefreshing.value = true
-            analyticsTracker.logEvent("matches_pull_to_refresh", mapOf("force" to "true"))
         }
         _forceRefreshTrigger.value = forceRefresh
     }
