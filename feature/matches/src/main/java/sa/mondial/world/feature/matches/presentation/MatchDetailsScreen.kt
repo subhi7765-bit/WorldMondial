@@ -232,43 +232,30 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
                     }
                     Text(
                         text = if (isAr) details.homeTeamNameAr else details.homeTeamNameEn,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 
-                // لوحة النتيجة الوسطى
+                // لوحة النتيجة الوسطى (تم إصلاح التشوه هنا)
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.padding(horizontal = 8.dp).weight(0.9f)
+                    modifier = Modifier.padding(horizontal = 4.dp).weight(1f)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = details.homeScore?.toString() ?: "-",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = " : ",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = details.awayScore?.toString() ?: "-",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text(
+                        // دمجنا النتيجة في سطر واحد لمنع التكسر
+                        text = "${details.homeScore ?: "-"}  :  ${details.awayScore ?: "-"}",
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
                 // الضيف مع العلم الخاص به
@@ -282,7 +269,7 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
                     }
                     Text(
                         text = if (isAr) details.awayTeamNameAr else details.awayTeamNameEn,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         fontWeight = FontWeight.Bold
