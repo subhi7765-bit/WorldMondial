@@ -6,7 +6,6 @@ import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.domain.LineupPlayer
 
 val arabicDictionary = mapOf(
-    // البطولات الكبرى
     "FIFA World Cup" to "كأس العالم",
     "UEFA Champions League" to "دوري أبطال أوروبا",
     "Primera Division" to "الدوري الإسباني",
@@ -17,7 +16,6 @@ val arabicDictionary = mapOf(
     "European Championship" to "بطولة أمم أوروبا",
     "Copa America" to "كوبا أمريكا",
 
-    // المنتخبات
     "Saudi Arabia" to "السعودية", "Egypt" to "مصر", "Morocco" to "المغرب", 
     "Tunisia" to "تونس", "Algeria" to "الجزائر", "Qatar" to "قطر", 
     "UAE" to "الإمارات", "Iraq" to "العراق", "Syria" to "سوريا", "Oman" to "عمان",
@@ -34,7 +32,6 @@ val arabicDictionary = mapOf(
     "South Africa" to "جنوب أفريقيا", "Serbia" to "صربيا", "Poland" to "بولندا",
     "Wales" to "ويلز", "Iran" to "إيران", "Ecuador" to "الإكوادور", "Peru" to "بيرو",
 
-    // الأندية
     "Real Madrid FC" to "ريال مدريد", "Real Madrid" to "ريال مدريد",
     "FC Barcelona" to "برشلونة", "Barcelona" to "برشلونة",
     "Manchester City FC" to "مانشستر سيتي", "Manchester City" to "مانشستر سيتي",
@@ -74,7 +71,8 @@ data class ScoreDetailDto(
 @Serializable
 data class ScoreDto(
     val fullTime: ScoreDetailDto? = null,
-    val regularTime: ScoreDetailDto? = null
+    val regularTime: ScoreDetailDto? = null,
+    val halfTime: ScoreDetailDto? = null // جديد: لتفادي غباء السيرفر
 )
 
 @Serializable
@@ -108,8 +106,9 @@ data class MatchDto(
             awayNameAr = aNameAr,
             awayNameEn = aNameEn,
             awayFlag = awayTeam?.crest ?: "",
-            homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
-            awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
+            // جديد: محاولة التقاط النتيجة من أي مكان في حال كان السيرفر متأخراً
+            homeScore = score?.fullTime?.home ?: score?.regularTime?.home ?: score?.halfTime?.home,
+            awayScore = score?.fullTime?.away ?: score?.regularTime?.away ?: score?.halfTime?.away,
             status = status ?: "UPCOMING",
             roundAr = "الجولة ${matchday ?: ""}",
             roundEn = "Matchday ${matchday ?: ""}",
@@ -158,8 +157,9 @@ data class MatchDetailsDto(
             awayNameAr = aNameAr,
             awayNameEn = aNameEn,
             awayFlag = aFlag,
-            homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
-            awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
+            // جديد: محاولة التقاط النتيجة من أي مكان في حال كان السيرفر متأخراً
+            homeScore = score?.fullTime?.home ?: score?.regularTime?.home ?: score?.halfTime?.home,
+            awayScore = score?.fullTime?.away ?: score?.regularTime?.away ?: score?.halfTime?.away,
             status = status ?: "UPCOMING",
             roundAr = "الجولة ${matchday ?: ""}",
             roundEn = "Matchday ${matchday ?: ""}",
