@@ -43,8 +43,10 @@ data class MatchDetailsEntity(
     fun toDomainModel(): MatchDetails {
         val parsedTime = DateParser.parseToInstant(timestampMs)
         
+        // فصلنا حالة "PAUSED" لتصبح "بين الشوطين"
         val parsedStatus = when (status.uppercase()) {
-            "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
+            "IN_PLAY", "LIVE" -> MatchStatus.LIVE
+            "PAUSED" -> MatchStatus.HALF_TIME
             "FINISHED", "AWARDED" -> MatchStatus.FINISHED
             else -> MatchStatus.UPCOMING
         }
