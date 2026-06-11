@@ -5,100 +5,126 @@ import sa.mondial.world.core.database.entity.MatchEntity
 import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.domain.LineupPlayer
 
+// 1. DTOs to match the exact JSON structure from football-data.org
+@Serializable
+data class TeamDto(
+    val id: Int? = null,
+    val name: String? = null,
+    val shortName: String? = null,
+    val crest: String? = null
+)
+
+@Serializable
+data class ScoreDetailDto(
+    val home: Int? = null,
+    val away: Int? = null
+)
+
+@Serializable
+data class ScoreDto(
+    val fullTime: ScoreDetailDto? = null,
+    val regularTime: ScoreDetailDto? = null
+)
+
+@Serializable
+data class RefereeDto(
+    val id: Int? = null,
+    val name: String? = null
+)
+
+// 2. The Main Match DTO corresponding to the API response
 @Serializable
 data class MatchDto(
-    val id: String,
-    val homeNameAr: String,
-    val homeNameEn: String,
-    val awayNameAr: String,
-    val awayNameEn: String,
-    val homeScore: Int? = null,
-    val awayScore: Int? = null,
-    val status: String = "UPCOMING",
-    val roundAr: String = "",
-    val roundEn: String = "",
-    val utcTime: String = ""
+    val id: Int,
+    val utcDate: String? = null,
+    val status: String? = null,
+    val matchday: Int? = null,
+    val homeTeam: TeamDto? = null,
+    val awayTeam: TeamDto? = null,
+    val score: ScoreDto? = null
 ) {
     fun toDatabaseEntity(): MatchEntity {
+        // Safe extraction from nested objects
+        val hName = homeTeam?.name ?: "Unknown"
+        val aName = awayTeam?.name ?: "Unknown"
+        val matchStatus = status ?: "UPCOMING"
+        
         return MatchEntity(
-            id = id,
-            homeNameAr = homeNameAr,
-            homeNameEn = homeNameEn,
-            awayNameAr = awayNameAr,
-            awayNameEn = awayNameEn,
-            homeScore = homeScore,
-            awayScore = awayScore,
-            status = status,
-            roundAr = roundAr,
-            roundEn = roundEn,
-            utcTime = utcTime,
+            id = id.toString(),
+            homeNameAr = hName,
+            homeNameEn = hName,
+            awayNameAr = aName,
+            awayNameEn = aName,
+            homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
+            awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
+            status = matchStatus,
+            roundAr = "الجولة ${matchday ?: ""}",
+            roundEn = "Matchday ${matchday ?: ""}",
+            utcTime = utcDate ?: "",
             lastUpdated = System.currentTimeMillis()
         )
     }
 }
 
+// 3. Match Details DTO mapping
 @Serializable
 data class MatchDetailsDto(
-    val id: String,
-    val homeNameAr: String,
-    val homeNameEn: String,
-    val homeFlag: String = "",
-    val awayNameAr: String,
-    val awayNameEn: String,
-    val awayFlag: String = "",
-    val homeScore: Int? = null,
-    val awayScore: Int? = null,
-    val status: String,
-    val roundAr: String,
-    val roundEn: String,
-    val venueAr: String = "",
-    val venueEn: String = "",
-    val refereeAr: String = "",
-    val refereeEn: String = "",
-    val homeStartingXI: List<LineupPlayerDto> = emptyList(),
-    val homeSubstitutes: List<LineupPlayerDto> = emptyList(),
-    val awayStartingXI: List<LineupPlayerDto> = emptyList(),
-    val awaySubstitutes: List<LineupPlayerDto> = emptyList(),
-    val timelineEventsAr: List<String> = emptyList(),
-    val timelineEventsEn: List<String> = emptyList()
+    val id: Int,
+    val utcDate: String? = null,
+    val status: String? = null,
+    val matchday: Int? = null,
+    val homeTeam: TeamDto? = null,
+    val awayTeam: TeamDto? = null,
+    val score: ScoreDto? = null,
+    val referees: List<RefereeDto>? = null,
+    val venue: String? = null
 ) {
     fun toDatabaseEntity(timestampMs: Long): MatchDetailsEntity {
+        val hName = homeTeam?.name ?: "Unknown"
+        val aName = awayTeam?.name ?: "Unknown"
+        val hFlag = homeTeam?.crest ?: ""
+        val aFlag = awayTeam?.crest ?: ""
+        val matchStatus = status ?: "UPCOMING"
+        val refName = referees?.firstOrNull()?.name ?: "Unknown"
+        val venueName = venue ?: "Unknown Stadium"
+
         return MatchDetailsEntity(
-            id = id,
-            homeNameAr = homeNameAr,
-            homeNameEn = homeNameEn,
-            homeFlag = homeFlag,
-            awayNameAr = awayNameAr,
-            awayNameEn = awayNameEn,
-            awayFlag = awayFlag,
-            homeScore = homeScore,
-            awayScore = awayScore,
-            status = status,
-            roundAr = roundAr,
-            roundEn = roundEn,
-            venueAr = venueAr,
-            venueEn = venueEn,
-            refereeAr = refereeAr,
-            refereeEn = refereeEn,
-            homeStartingXI = homeStartingXI.map { it.toDomainModel() },
-            homeSubstitutes = homeSubstitutes.map { it.toDomainModel() },
-            awayStartingXI = awayStartingXI.map { it.toDomainModel() },
-            awaySubstitutes = awaySubstitutes.map { it.toDomainModel() },
-            timelineEventsAr = timelineEventsAr,
-            timelineEventsEn = timelineEventsEn,
+            id = id.toString(),
+            homeNameAr = hName,
+            homeNameEn = hName,
+            homeFlag = hFlag,
+            awayNameAr = aName,
+            awayNameEn = aName,
+            awayFlag = aFlag,
+            homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
+            awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
+            status = matchStatus,
+            roundAr = "الجولة ${matchday ?: ""}",
+            roundEn = "Matchday ${matchday ?: ""}",
+            venueAr = venueName,
+            venueEn = venueName,
+            refereeAr = refName,
+            refereeEn = refName,
+            homeStartingXI = emptyList(),
+            homeSubstitutes = emptyList(),
+            awayStartingXI = emptyList(),
+            awaySubstitutes = emptyList(),
+            timelineEventsAr = emptyList(),
+            timelineEventsEn = emptyList(),
             timestampMs = timestampMs,
             lastUpdated = System.currentTimeMillis()
         )
     }
 }
 
+// 4. Lineup Players (Fallback for future pro-tier integration)
 @Serializable
 data class LineupPlayerDto(
-    val nameAr: String,
-    val nameEn: String,
-    val number: Int,
-    val positionAr: String,
-    val positionEn: String,
+    val nameAr: String = "",
+    val nameEn: String = "",
+    val number: Int = 0,
+    val positionAr: String = "",
+    val positionEn: String = "",
     val isCaptain: Boolean = false,
     val isGoalkeeper: Boolean = false
 ) {
