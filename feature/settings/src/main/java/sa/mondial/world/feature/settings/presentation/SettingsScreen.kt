@@ -185,7 +185,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            uriHandler.openUri("https://policies.google.com/privacy") 
+                            // الرابط الرسمي لسياسة الخصوصية الخاصة بتطبيقك
+                            uriHandler.openUri("https://subhi7765-bit.github.io/WorldMondial/privacy_policy.html") 
                         },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
