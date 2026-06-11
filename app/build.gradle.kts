@@ -104,8 +104,10 @@ dependencies {
 
     // Core SplashScreen API library dependency
     implementation("androidx.core:core-splashscreen:1.0.1")
+    
+    // THE FIX: Added Coil Compose library to resolve ImageLoaderFactory in Application class
+    implementation(libs.coil.compose)
     implementation(libs.coil.svg)
-
 
     // Firebase Ecosystem Delivery Services (SECURED: Versions removed to let BOM handle them)
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
