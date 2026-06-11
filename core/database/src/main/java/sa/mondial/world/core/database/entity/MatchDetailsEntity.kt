@@ -7,7 +7,6 @@ import sa.mondial.world.core.database.converters.RoomConverters
 import sa.mondial.world.core.domain.LineupPlayer
 import sa.mondial.world.core.domain.MatchDetails
 import sa.mondial.world.core.domain.MatchStatus
-import java.time.Instant
 import sa.mondial.world.core.common.DateParser
 
 @Entity(tableName = "match_details")
@@ -40,7 +39,14 @@ data class MatchDetailsEntity(
 ) {
     fun toDomainModel(): MatchDetails {
         val parsedTime = DateParser.parseToInstant(timestampMs)
-        val parsedStatus = try { MatchStatus.valueOf(status) } catch (e: Exception) { MatchStatus.FINISHED }
+        
+        // THE FIX: Correctly mapping remote server statuses to prevent instant FINISHED state bug
+        val parsedStatus = when (status.uppercase()) {
+            "IN_PLAY", "PAUSED", "LIVE" -> MatchStatus.LIVE
+            "FINISHED", "AWARDED" -> MatchStatus.FINISHED
+            else -> MatchStatus.UPCOMING // Covers TIMED, SCHEDULED
+        }
+        
         return MatchDetails(
             id = id,
             homeTeamNameAr = homeNameAr,
