@@ -9,33 +9,36 @@ import dagger.assisted.AssistedInject
 import sa.mondial.world.core.database.dao.MatchDao
 import sa.mondial.world.core.network.api.MatchApiService
 import timber.log.Timber
+import java.time.LocalDate
+import java.time.ZoneId
 
 @HiltWorker
 class MatchSyncWorker @AssistedInject constructor(
-    @Assisted context: Context,
+    @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val remoteNetworkApi: MatchApiService,
-    private val localDatabaseDao: MatchDao
-) : CoroutineWorker(context, workerParams) {
+    private val matchDao: MatchDao,
+    private val matchApiService: MatchApiService
+) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        Timber.i("MatchSyncWorker: Background periodic match sync routine initiated.")
         return try {
-            val response = remoteNetworkApi.getMatches()
-            // Fixed Cleanly: Accessing the interior matches array collection from the upgraded response object wrapper
-            val networkMatches = response.matches
+            Timber.i("MatchSyncWorker: Starting background sync...")
             
-            if (networkMatches.isNotEmpty()) {
-                val dbEntities = networkMatches.map { it.toDatabaseEntity() }
-                localDatabaseDao.refreshAllMatches(dbEntities)
-                Timber.i("MatchSyncWorker: Successfully cached background records count: ${networkMatches.size}")
-            } else {
-                Timber.w("MatchSyncWorker: Network data sync returned an empty collection array.")
-            }
+            // حساب التواريخ (من أمس إلى الغد) لضمان توافق جلب البيانات في الخلفية
+            val today = LocalDate.now(ZoneId.systemDefault())
+            val dateFrom = today.minusDays(1).toString()
+            val dateTo = today.plusDays(1).toString()
+
+            // إرسال التواريخ كما يطلب السيرفر الآن
+            val response = matchApiService.getMatches(dateFrom = dateFrom, dateTo = dateTo)
+            val entities = response.matches.map { it.toDatabaseEntity() }
             
+            matchDao.refreshAllMatches(entities)
+            
+            Timber.i("MatchSyncWorker: Background sync completed successfully.")
             Result.success()
-        } catch (exception: Exception) {
-            Timber.e(exception, "MatchSyncWorker: Periodic background data synchronization routine execution failed.")
+        } catch (e: Exception) {
+            Timber.e(e, "MatchSyncWorker: Background sync failed.")
             Result.retry()
         }
     }
