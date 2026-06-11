@@ -6,15 +6,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import io.mockk.mockk
 import io.mockk.every
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import androidx.paging.PagingData
-import androidx.paging.LoadState
-import androidx.paging.LoadStates
 import org.junit.Rule
 import org.junit.Test
 import sa.mondial.world.core.analytics.AnalyticsTracker
+import sa.mondial.world.core.common.UiState
+import sa.mondial.world.core.domain.Match
 import sa.mondial.world.feature.matches.presentation.MatchesScreen
 import sa.mondial.world.feature.matches.presentation.MatchesViewModel
+import sa.mondial.world.feature.matches.presentation.SelectedDay
 
 class MatchesScreenTest {
 
@@ -26,16 +25,11 @@ class MatchesScreenTest {
 
     @Test
     fun matchesScreen_displaysLoadingState_initially() {
-        val loadingPagingData = PagingData.empty<sa.mondial.world.core.domain.Match>(
-            sourceLoadStates = LoadStates(
-                refresh = LoadState.Loading,
-                prepend = LoadState.NotLoading(endOfPaginationReached = false),
-                append = LoadState.NotLoading(endOfPaginationReached = false)
-            )
-        )
-        every { viewModel.pagedMatchesFlow } returns flowOf(loadingPagingData)
+        // Setup mock responses for the new standard UiState flow
+        every { viewModel.uiState } returns MutableStateFlow(UiState.Loading)
         every { viewModel.currentLanguage } returns MutableStateFlow("en")
         every { viewModel.isRefreshing } returns MutableStateFlow(false)
+        every { viewModel.selectedDay } returns MutableStateFlow(SelectedDay.TODAY)
 
         composeTestRule.setContent {
             MatchesScreen(
@@ -44,6 +38,7 @@ class MatchesScreenTest {
             )
         }
 
+        // Verify the shimmer loader is displayed when in loading state
         composeTestRule.onNodeWithTag("loading_indicator").assertIsDisplayed()
     }
 }
