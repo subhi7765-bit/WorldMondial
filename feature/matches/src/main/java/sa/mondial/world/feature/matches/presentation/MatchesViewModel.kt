@@ -32,7 +32,8 @@ class MatchesViewModel @Inject constructor(
     private val _selectedDay = MutableStateFlow(SelectedDay.TODAY)
     val selectedDay: StateFlow<SelectedDay> = _selectedDay.asStateFlow()
 
-    private val _forceRefreshTrigger = MutableStateFlow(false)
+    // THE FIX: SharedFlow guarantees that every pull-to-refresh action executes properly
+    private val _forceRefreshTrigger = MutableSharedFlow<Boolean>(replay = 1, onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
 
     val currentLanguage = localizationManager.currentLanguage.stateIn(
         scope = viewModelScope,
@@ -48,7 +49,7 @@ class MatchesViewModel @Inject constructor(
             when (result) {
                 is Result.Loading -> UiState.Loading
                 is Result.Success -> {
-                    _isRefreshing.value = false // إيقاف الدائرة بنجاح
+                    _isRefreshing.value = false // Stop Spinner
                     val filteredMatches = result.data.filter { match ->
                         val matchLocalDate = match.utcTime.atZone(ZoneId.systemDefault()).toLocalDate()
                         val today = LocalDate.now(ZoneId.systemDefault())
@@ -64,7 +65,7 @@ class MatchesViewModel @Inject constructor(
                     else UiState.Success(filteredMatches, isFromCache = false)
                 }
                 is Result.Error -> {
-                    _isRefreshing.value = false // إيقاف الدائرة عند الخطأ
+                    _isRefreshing.value = false // Stop Spinner
                     val msg = ErrorHandler.getLocalisedMessage(result.exception, isAr)
                     UiState.Error(result.exception, msg)
                 }
@@ -74,6 +75,7 @@ class MatchesViewModel @Inject constructor(
 
     init {
         analyticsTracker.logScreenView("MatchesScreen")
+        _forceRefreshTrigger.tryEmit(false)
     }
 
     fun selectDay(day: SelectedDay) {
@@ -84,6 +86,6 @@ class MatchesViewModel @Inject constructor(
         if (forceRefresh) {
             _isRefreshing.value = true
         }
-        _forceRefreshTrigger.value = forceRefresh
+        _forceRefreshTrigger.tryEmit(forceRefresh)
     }
 }
