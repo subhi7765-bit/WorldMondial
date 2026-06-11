@@ -237,7 +237,7 @@ fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
                 }
             }
 
-            // حالات المباراة (مباشر، بين الشوطين، انتهت، لم تبدأ)
+            // السر هنا: تم إزالة الـ IF القديمة، وأصبح التطبيق يعرض كل الحالات
             val statusText = when (match.matchStatus) {
                 MatchStatus.LIVE -> if (isAr) "مباشر الآن" else "LIVE"
                 MatchStatus.HALF_TIME -> if (isAr) "بين الشوطين" else "Half-Time"
