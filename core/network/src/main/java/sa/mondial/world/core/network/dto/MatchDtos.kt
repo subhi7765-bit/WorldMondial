@@ -5,15 +5,11 @@ import sa.mondial.world.core.database.entity.MatchEntity
 import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.domain.LineupPlayer
 
-// القاموس الشامل للمنتخبات والأندية (متاح لكل التطبيق)
 val arabicDictionary = mapOf(
-    // المنتخبات العربية
     "Saudi Arabia" to "السعودية", "Egypt" to "مصر", "Morocco" to "المغرب", 
     "Tunisia" to "تونس", "Algeria" to "الجزائر", "Qatar" to "قطر", 
     "UAE" to "الإمارات", "Iraq" to "العراق", "Syria" to "سوريا", "Oman" to "عمان",
     "Jordan" to "الأردن", "Palestine" to "فلسطين", "Lebanon" to "لبنان", "Bahrain" to "البحرين",
-    
-    // منتخبات كأس العالم العالمية
     "Argentina" to "الأرجنتين", "Brazil" to "البرازيل", "France" to "فرنسا", 
     "Germany" to "ألمانيا", "Spain" to "إسبانيا", "Portugal" to "البرتغال", 
     "England" to "إنجلترا", "Italy" to "إيطاليا", "Netherlands" to "هولندا", 
@@ -25,8 +21,6 @@ val arabicDictionary = mapOf(
     "Cameroon" to "الكاميرون", "Ghana" to "غانا", "Nigeria" to "نيجيريا",
     "South Africa" to "جنوب أفريقيا", "Serbia" to "صربيا", "Poland" to "بولندا",
     "Wales" to "ويلز", "Iran" to "إيران", "Ecuador" to "الإكوادور", "Peru" to "بيرو",
-
-    // الأندية الكبرى (لتغطية البطولات ودوري الأبطال)
     "Real Madrid FC" to "ريال مدريد", "Real Madrid" to "ريال مدريد",
     "FC Barcelona" to "برشلونة", "Barcelona" to "برشلونة",
     "Manchester City FC" to "مانشستر سيتي", "Manchester City" to "مانشستر سيتي",
@@ -81,16 +75,21 @@ data class MatchDto(
     fun toDatabaseEntity(): MatchEntity {
         val hNameEn = homeTeam?.name ?: homeTeam?.shortName ?: "Unknown"
         val aNameEn = awayTeam?.name ?: awayTeam?.shortName ?: "Unknown"
-        
         val hNameAr = arabicDictionary[hNameEn] ?: arabicDictionary[homeTeam?.shortName] ?: hNameEn
         val aNameAr = arabicDictionary[aNameEn] ?: arabicDictionary[awayTeam?.shortName] ?: aNameEn
+        
+        // سحب الصور من السيرفر
+        val hFlag = homeTeam?.crest ?: ""
+        val aFlag = awayTeam?.crest ?: ""
 
         return MatchEntity(
             id = id.toString(),
             homeNameAr = hNameAr,
             homeNameEn = hNameEn,
+            homeFlag = hFlag,
             awayNameAr = aNameAr,
             awayNameEn = aNameEn,
+            awayFlag = aFlag,
             homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
             awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
             status = status ?: "UPCOMING",
@@ -117,10 +116,8 @@ data class MatchDetailsDto(
     fun toDatabaseEntity(timestampMs: Long): MatchDetailsEntity {
         val hNameEn = homeTeam?.name ?: homeTeam?.shortName ?: "Unknown"
         val aNameEn = awayTeam?.name ?: awayTeam?.shortName ?: "Unknown"
-        
         val hNameAr = arabicDictionary[hNameEn] ?: arabicDictionary[homeTeam?.shortName] ?: hNameEn
         val aNameAr = arabicDictionary[aNameEn] ?: arabicDictionary[awayTeam?.shortName] ?: aNameEn
-        
         val hFlag = homeTeam?.crest ?: ""
         val aFlag = awayTeam?.crest ?: ""
         val refName = referees?.firstOrNull()?.name ?: "Unknown"
