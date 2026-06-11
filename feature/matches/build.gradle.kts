@@ -40,6 +40,7 @@ dependencies {
     implementation(project(":core:analytics"))
     implementation(project(":core:network"))
     implementation(project(":core:database"))
+    
 
     // Native Jetpack Compose Core Framework
     implementation(libs.androidx.compose.ui)
@@ -64,6 +65,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose) // السطر السحري الجديد لتحميل الشعارات
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.1")
+    implementation(libs.coil.svg)
+
 
     // Unified Test Pipeline Hooks
     testImplementation(project(":core:testing"))
