@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.core.os.LocaleListCompat
+// تمت إضافة الاستيراد الخاص بشاشة البداية هنا
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -104,6 +106,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // SECURED & POLISHED: Install Splash Screen MUST be called before super.onCreate
+        installSplashScreen()
+        
         super.onCreate(savedInstanceState)
         checkAndRequestNotificationPermission()
         handleDeepLink(intent)
