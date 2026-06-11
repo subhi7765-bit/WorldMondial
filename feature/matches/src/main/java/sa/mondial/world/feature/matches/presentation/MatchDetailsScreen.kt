@@ -278,12 +278,19 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            // حالات المباراة (مباشر، بين الشوطين، انتهت، لم تبدأ)
             val statusText = when (details.matchStatus) {
                 MatchStatus.LIVE -> if (isAr) "مباشر الآن" else "LIVE"
+                MatchStatus.HALF_TIME -> if (isAr) "بين الشوطين" else "Half-Time"
                 MatchStatus.FINISHED -> if (isAr) "انتهت" else "Finished"
                 MatchStatus.UPCOMING -> if (isAr) "لم تبدأ بعد" else "Upcoming"
             }
-            val statusColor = if (details.matchStatus == MatchStatus.LIVE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            
+            val statusColor = when (details.matchStatus) {
+                MatchStatus.LIVE -> MaterialTheme.colorScheme.error // أحمر
+                MatchStatus.HALF_TIME -> Color(0xFFE67E22) // برتقالي
+                else -> MaterialTheme.colorScheme.primary // أزرق/أساسي
+            }
             
             Text(
                 text = statusText,
