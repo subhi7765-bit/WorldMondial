@@ -15,7 +15,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.hilt.work.HiltWorkerFactory
 import coil.ImageLoader
 import coil.ImageLoaderFactory
-import coil.decode.SvgDecoder // استيراد فك تشفير المتجهات
+import coil.decode.SvgDecoder // استيراد فك تشفير المتجهات (SVG)
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
