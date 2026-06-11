@@ -14,7 +14,10 @@ interface MatchDao {
     @Query("SELECT * FROM matches ORDER BY utcTime")
     fun getCachedMatchesFlow(): Flow<List<MatchEntity>>
 
-    // THE FIX: Added database-level date filtering using SQL LIKE
+    // السطر الجديد: جلب المباريات للتحقق من حالتها قبل الكتابة فوقها
+    @Query("SELECT * FROM matches")
+    suspend fun getAllMatchesSync(): List<MatchEntity>
+
     @Query("SELECT * FROM matches WHERE utcTime LIKE :datePrefix || '%' ORDER BY utcTime LIMIT :limit OFFSET :offset")
     suspend fun getPagedMatchesByDate(limit: Int, offset: Int, datePrefix: String): List<MatchEntity>
 
