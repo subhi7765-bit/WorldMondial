@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage // استيراد الصور
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
 import com.valentinilk.shimmer.ShimmerBounds
@@ -182,12 +183,57 @@ fun MatchCard(match: Match, isAr: Boolean, onClick: () -> Unit) {
                 Text(match.utcTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(if (isAr) Locale("ar") else Locale.ENGLISH)), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                Text(if (isAr) match.homeTeamNameAr else match.homeTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Right else TextAlign.Left, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(horizontal = 12.dp)) {
-                    Text("${match.homeScore ?: "-"} : ${match.awayScore ?: "-"}", modifier = Modifier.padding(16.dp, 6.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            
+            // التصميم الفخم الجديد: شعار -> نتيجة -> شعار
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                
+                // الفريق الأول (صاحب الأرض)
+                Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (match.homeTeamFlagUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = match.homeTeamFlagUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp).padding(bottom = 8.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isAr) match.homeTeamNameAr else match.homeTeamNameEn, 
+                        textAlign = TextAlign.Center, 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold, 
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
-                Text(if (isAr) match.awayTeamNameAr else match.awayTeamNameEn, modifier = Modifier.weight(1f), textAlign = if (isAr) TextAlign.Left else TextAlign.Right, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                
+                // النتيجة
+                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(horizontal = 8.dp).weight(0.8f)) {
+                    Text(
+                        text = "${match.homeScore ?: "-"} : ${match.awayScore ?: "-"}", 
+                        modifier = Modifier.padding(vertical = 12.dp), 
+                        style = MaterialTheme.typography.titleLarge, 
+                        fontWeight = FontWeight.Bold, 
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                
+                // الفريق الثاني (الضيف)
+                Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (match.awayTeamFlagUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = match.awayTeamFlagUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp).padding(bottom = 8.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isAr) match.awayTeamNameAr else match.awayTeamNameEn, 
+                        textAlign = TextAlign.Center, 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold, 
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
             if (match.matchStatus == MatchStatus.UPCOMING) {
                 Text(if (isAr) "لم تبدأ بعد" else "Upcoming", color = MaterialTheme.colorScheme.secondary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
