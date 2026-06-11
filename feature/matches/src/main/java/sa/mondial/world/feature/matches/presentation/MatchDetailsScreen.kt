@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage // استيراد الأعلام
 import com.valentinilk.shimmer.shimmer
 import sa.mondial.world.core.common.UiState
 import sa.mondial.world.core.domain.LineupPlayer
@@ -54,7 +55,8 @@ fun MatchDetailsScreen(
                     Text(
                         text = if (isAr) "تفاصيل المباراة" else "Match Details",
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     ) 
                 },
                 navigationIcon = {
@@ -66,9 +68,7 @@ fun MatchDetailsScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -172,9 +172,7 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -183,7 +181,8 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
             Text(
                 text = if (isAr) details.roundAr else details.roundEn,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(
@@ -191,54 +190,85 @@ fun ScoreboardCard(details: MatchDetails, isAr: Boolean) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (isAr) details.homeTeamNameAr else details.homeTeamNameEn,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
+                // صاحب الأرض مع العلم الخاص به
+                Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (details.homeTeamFlagUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = details.homeTeamFlagUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(54.dp).padding(bottom = 8.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isAr) details.homeTeamNameAr else details.homeTeamNameEn,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 
+                // لوحة النتيجة الوسطى
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp).weight(0.9f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = details.homeScore?.toString() ?: "-",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = " : ",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = details.awayScore?.toString() ?: "-",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Text(
-                    text = if (isAr) details.awayTeamNameAr else details.awayTeamNameEn,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
+                // الضيف مع العلم الخاص به
+                Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (details.awayTeamFlagUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = details.awayTeamFlagUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(54.dp).padding(bottom = 8.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isAr) details.awayTeamNameAr else details.awayTeamNameEn,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             
-            val statusColor = if (details.matchStatus == MatchStatus.LIVE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+            val statusText = when (details.matchStatus) {
+                MatchStatus.LIVE -> if (isAr) "مباشر الآن" else "LIVE"
+                MatchStatus.FINISHED -> if (isAr) "انتهت" else "Finished"
+                MatchStatus.UPCOMING -> if (isAr) "لم تبدأ بعد" else "Upcoming"
+            }
+            val statusColor = if (details.matchStatus == MatchStatus.LIVE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            
             Text(
-                text = details.matchStatus.name,
+                text = statusText,
                 style = MaterialTheme.typography.labelLarge,
                 color = statusColor,
                 fontWeight = FontWeight.Bold
@@ -252,9 +282,7 @@ fun MatchInfoCard(details: MatchDetails, isAr: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -273,17 +301,8 @@ fun InfoRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -293,16 +312,15 @@ fun LineupSection(details: MatchDetails, isAr: Boolean) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = if (isAr) "التشكيلة الأساسية" else "Starting XI",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    fontWeight = FontWeight.Bold
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -310,11 +328,10 @@ fun LineupSection(details: MatchDetails, isAr: Boolean) {
                             text = if (isAr) details.homeTeamNameAr else details.homeTeamNameEn,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            fontWeight = FontWeight.Bold
                         )
-                        details.homeStartingXI.forEach { player ->
-                            PlayerRow(player, isAr)
-                        }
+                        details.homeStartingXI.forEach { player -> PlayerRow(player, isAr) }
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -322,11 +339,10 @@ fun LineupSection(details: MatchDetails, isAr: Boolean) {
                             text = if (isAr) details.awayTeamNameAr else details.awayTeamNameEn,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            fontWeight = FontWeight.Bold
                         )
-                        details.awayStartingXI.forEach { player ->
-                            PlayerRow(player, isAr)
-                        }
+                        details.awayStartingXI.forEach { player -> PlayerRow(player, isAr) }
                     }
                 }
             }
@@ -336,21 +352,9 @@ fun LineupSection(details: MatchDetails, isAr: Boolean) {
 
 @Composable
 fun PlayerRow(player: LineupPlayer, isAr: Boolean) {
-    Row(
-        modifier = Modifier.padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "${player.number}.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.width(24.dp)
-        )
-        Text(
-            text = if (isAr) player.nameAr else player.nameEn,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+    Row(modifier = Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(text = "${player.number}.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(24.dp))
+        Text(text = if (isAr) player.nameAr else player.nameEn, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -361,34 +365,21 @@ fun TimelineSection(details: MatchDetails, isAr: Boolean) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = if (isAr) "أحداث المباراة" else "Match Events",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    fontWeight = FontWeight.Bold
                 )
                 events.forEach { event ->
-                    Row(
-                        modifier = Modifier.padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
+                    Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.primary))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = event,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = event, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -398,61 +389,19 @@ fun TimelineSection(details: MatchDetails, isAr: Boolean) {
 
 @Composable
 fun MatchDetailsShimmerLoader() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .shimmer()
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .shimmer()
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-        )
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)).shimmer().background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
+        Box(modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(16.dp)).shimmer().background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
     }
 }
 
 @Composable
 fun MatchDetailsError(message: String, isAr: Boolean, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = "Error",
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error
-        )
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(imageVector = Icons.Default.Warning, contentDescription = "Error", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = message,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
+        Text(text = message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Text(
-                text = if (isAr) "إعادة المحاولة" else "Retry",
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
+        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text(text = if (isAr) "إعادة المحاولة" else "Retry", color = MaterialTheme.colorScheme.onPrimary) }
     }
 }
