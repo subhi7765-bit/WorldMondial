@@ -6,6 +6,18 @@ import sa.mondial.world.core.database.entity.MatchDetailsEntity
 import sa.mondial.world.core.domain.LineupPlayer
 
 val arabicDictionary = mapOf(
+    // البطولات الكبرى
+    "FIFA World Cup" to "كأس العالم",
+    "UEFA Champions League" to "دوري أبطال أوروبا",
+    "Primera Division" to "الدوري الإسباني",
+    "Premier League" to "الدوري الإنجليزي",
+    "Serie A" to "الدوري الإيطالي",
+    "Bundesliga" to "الدوري الألماني",
+    "Ligue 1" to "الدوري الفرنسي",
+    "European Championship" to "بطولة أمم أوروبا",
+    "Copa America" to "كوبا أمريكا",
+
+    // المنتخبات
     "Saudi Arabia" to "السعودية", "Egypt" to "مصر", "Morocco" to "المغرب", 
     "Tunisia" to "تونس", "Algeria" to "الجزائر", "Qatar" to "قطر", 
     "UAE" to "الإمارات", "Iraq" to "العراق", "Syria" to "سوريا", "Oman" to "عمان",
@@ -21,6 +33,8 @@ val arabicDictionary = mapOf(
     "Cameroon" to "الكاميرون", "Ghana" to "غانا", "Nigeria" to "نيجيريا",
     "South Africa" to "جنوب أفريقيا", "Serbia" to "صربيا", "Poland" to "بولندا",
     "Wales" to "ويلز", "Iran" to "إيران", "Ecuador" to "الإكوادور", "Peru" to "بيرو",
+
+    // الأندية
     "Real Madrid FC" to "ريال مدريد", "Real Madrid" to "ريال مدريد",
     "FC Barcelona" to "برشلونة", "Barcelona" to "برشلونة",
     "Manchester City FC" to "مانشستر سيتي", "Manchester City" to "مانشستر سيتي",
@@ -34,6 +48,13 @@ val arabicDictionary = mapOf(
     "Paris Saint-Germain FC" to "باريس سان جيرمان", "PSG" to "باريس سان جيرمان",
     "Juventus FC" to "يوفنتوس", "Juventus" to "يوفنتوس",
     "AC Milan" to "ميلان", "Inter Milan" to "إنتر ميلان", "Inter" to "إنتر ميلان"
+)
+
+@Serializable
+data class CompetitionDto(
+    val id: Int? = null,
+    val name: String? = null,
+    val emblem: String? = null
 )
 
 @Serializable
@@ -75,21 +96,18 @@ data class MatchDto(
     fun toDatabaseEntity(): MatchEntity {
         val hNameEn = homeTeam?.name ?: homeTeam?.shortName ?: "Unknown"
         val aNameEn = awayTeam?.name ?: awayTeam?.shortName ?: "Unknown"
+        
         val hNameAr = arabicDictionary[hNameEn] ?: arabicDictionary[homeTeam?.shortName] ?: hNameEn
         val aNameAr = arabicDictionary[aNameEn] ?: arabicDictionary[awayTeam?.shortName] ?: aNameEn
-        
-        // سحب الصور من السيرفر
-        val hFlag = homeTeam?.crest ?: ""
-        val aFlag = awayTeam?.crest ?: ""
 
         return MatchEntity(
             id = id.toString(),
             homeNameAr = hNameAr,
             homeNameEn = hNameEn,
-            homeFlag = hFlag,
+            homeFlag = homeTeam?.crest ?: "",
             awayNameAr = aNameAr,
             awayNameEn = aNameEn,
-            awayFlag = aFlag,
+            awayFlag = awayTeam?.crest ?: "",
             homeScore = score?.fullTime?.home ?: score?.regularTime?.home,
             awayScore = score?.fullTime?.away ?: score?.regularTime?.away,
             status = status ?: "UPCOMING",
@@ -107,6 +125,7 @@ data class MatchDetailsDto(
     val utcDate: String? = null,
     val status: String? = null,
     val matchday: Int? = null,
+    val competition: CompetitionDto? = null,
     val homeTeam: TeamDto? = null,
     val awayTeam: TeamDto? = null,
     val score: ScoreDto? = null,
@@ -118,6 +137,11 @@ data class MatchDetailsDto(
         val aNameEn = awayTeam?.name ?: awayTeam?.shortName ?: "Unknown"
         val hNameAr = arabicDictionary[hNameEn] ?: arabicDictionary[homeTeam?.shortName] ?: hNameEn
         val aNameAr = arabicDictionary[aNameEn] ?: arabicDictionary[awayTeam?.shortName] ?: aNameEn
+        
+        val compNameEn = competition?.name ?: "Unknown Competition"
+        val compNameAr = arabicDictionary[compNameEn] ?: compNameEn
+        val compEmblem = competition?.emblem ?: ""
+
         val hFlag = homeTeam?.crest ?: ""
         val aFlag = awayTeam?.crest ?: ""
         val refName = referees?.firstOrNull()?.name ?: "Unknown"
@@ -125,6 +149,9 @@ data class MatchDetailsDto(
 
         return MatchDetailsEntity(
             id = id.toString(),
+            competitionNameAr = compNameAr,
+            competitionNameEn = compNameEn,
+            competitionEmblem = compEmblem,
             homeNameAr = hNameAr,
             homeNameEn = hNameEn,
             homeFlag = hFlag,
