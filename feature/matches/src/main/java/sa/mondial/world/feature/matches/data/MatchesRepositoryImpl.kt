@@ -28,10 +28,11 @@ class MatchesRepositoryImpl @Inject constructor(
             emit(Result.Loading)
             try {
                 Timber.i("MatchesRepository: Initializing network sync stream...")
-                // حساب التواريخ (من أمس إلى غد) لنجبر السيرفر على إرسال بيانات الـ 3 أيام
+                
+                // الحل الجذري لمشكلة اختفاء الغد والأمس: توسيع النافذة لـ 7 أيام لتفادي فروقات الـ UTC
                 val today = LocalDate.now(ZoneId.systemDefault())
-                val dateFrom = today.minusDays(1).toString()
-                val dateTo = today.plusDays(1).toString()
+                val dateFrom = today.minusDays(3).toString()
+                val dateTo = today.plusDays(3).toString()
 
                 val networkResponse = remoteNetworkApi.getMatches(dateFrom = dateFrom, dateTo = dateTo)
                 val dbEntities = networkResponse.matches.map { it.toDatabaseEntity() }
