@@ -1,4 +1,4 @@
-name: Build World Mondial Release APK
+name: Build World Mondial Release AAB
 
 on:
   workflow_dispatch:
@@ -33,14 +33,14 @@ jobs:
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Assemble Production Release APK
+      - name: Build Production Release AAB
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: ./gradlew :app:bundleRelease --no-daemon --stacktrace
 
-      - name: Archive and Upload Compiled APK
+      - name: Archive and Upload Compiled AAB
         uses: actions/upload-artifact@v4
         with:
-          name: WorldMondial-Release-APK
-          path: app/build/outputs/apk/release/*.apk
+          name: WorldMondial-Release-AAB
+          path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
